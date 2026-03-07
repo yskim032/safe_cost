@@ -1598,40 +1598,88 @@
           <!-- Left Column -->
           <div>
             <div class="card">
-              <div class="card-title">출발지 (항만)</div>
-              <div class="form-group">
-                <select id="m-origin" onchange="onManualOriginChange()">
-                  <option value="">항만 선택...</option>
-                </select>
+              <div class="card-title">출발지</div>
+              <!-- Origin mode toggle -->
+              <div style="display:flex;gap:6px;margin-bottom:10px">
+                <button id="m-origin-mode-port" onclick="setManualOriginMode('port')"
+                  style="flex:1;padding:5px 0;font-size:0.75rem;font-weight:700;border-radius:6px;border:2px solid var(--orange);background:var(--orange);color:#fff;cursor:pointer;font-family:inherit;transition:all 0.2s">
+                  항만 선택
+                </button>
+                <button id="m-origin-mode-addr" onclick="setManualOriginMode('addr')"
+                  style="flex:1;padding:5px 0;font-size:0.75rem;font-weight:700;border-radius:6px;border:2px solid rgba(0,200,255,0.4);background:transparent;color:var(--cyan);cursor:pointer;font-family:inherit;transition:all 0.2s">
+                  주소 선택
+                </button>
+              </div>
+              <!-- Port mode -->
+              <div id="m-origin-port-section">
+                <div class="form-group">
+                  <select id="m-origin" onchange="onManualOriginChange()">
+                    <option value="">항만 선택...</option>
+                  </select>
+                </div>
+              </div>
+              <!-- Address mode -->
+              <div id="m-origin-addr-section" style="display:none">
+                <div class="form-group">
+                  <label>시/도</label>
+                  <select id="m-origin-sido" onchange="onManualOriginSidoChange()">
+                    <option value="">시/도 선택...</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>시/군/구</label>
+                  <select id="m-origin-sigungu" onchange="onManualOriginSigunguChange()">
+                    <option value="">시/군/구 선택...</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>행정동</label>
+                  <select id="m-origin-dong" onchange="onManualOriginDongChange()">
+                    <option value="">행정동 선택...</option>
+                  </select>
+                </div>
               </div>
             </div>
 
             <div class="card">
-              <div class="card-title">도착지 (행정동)</div>
-              <div class="form-group">
-                <label>시/도</label>
-                <select id="m-sido" onchange="onManualSidoChange()">
-                  <option value="">시/도 선택...</option>
-                </select>
+              <div class="card-title">도착지</div>
+              <!-- Port mode destination (address-based) -->
+              <div id="m-dest-addr-section">
+                <div class="form-group">
+                  <label>시/도</label>
+                  <select id="m-sido" onchange="onManualSidoChange()">
+                    <option value="">시/도 선택...</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>시/군/구</label>
+                  <select id="m-sigungu" onchange="onManualSigunguChange()">
+                    <option value="">시/군/구 선택...</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>행정동</label>
+                  <select id="m-dong" onchange="onManualDongChange()">
+                    <option value="">행정동 선택...</option>
+                  </select>
+                </div>
+                <div id="m-oneway-wrap" style="display:none">
+                  <label class="checkbox-item" onclick="toggleOnewayManual(event)">
+                    <input type="checkbox" id="m-oneway-cb">
+                    <div class="checkbox-box" id="m-oneway-cb-box"></div>
+                    <span class="checkbox-label">편도 운임 적용 <span class="oneway-badge">의왕ICD 경유</span></span>
+                  </label>
+                </div>
               </div>
-              <div class="form-group">
-                <label>시/군/구</label>
-                <select id="m-sigungu" onchange="onManualSigunguChange()">
-                  <option value="">시/군/구 선택...</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>행정동</label>
-                <select id="m-dong" onchange="onManualDongChange()">
-                  <option value="">행정동 선택...</option>
-                </select>
-              </div>
-              <div id="m-oneway-wrap" style="display:none">
-                <label class="checkbox-item" onclick="toggleOnewayManual(event)">
-                  <input type="checkbox" id="m-oneway-cb">
-                  <div class="checkbox-box" id="m-oneway-cb-box"></div>
-                  <span class="checkbox-label">편도 운임 적용 <span class="oneway-badge">의왕ICD 경유</span></span>
-                </label>
+              <!-- Address mode destination (port-based) -->
+              <div id="m-dest-port-section" style="display:none">
+                <div class="form-group">
+                  <label>도착 항만</label>
+                  <select id="m-dest-port" onchange="onManualDestPortChange()">
+                    <option value="">항만 선택...</option>
+                  </select>
+                </div>
+                <div id="m-dest-port-info" style="font-size:0.77rem;color:var(--text-muted);margin-top:4px"></div>
               </div>
             </div>
 
@@ -2406,22 +2454,137 @@
         const cTiming = document.getElementById('m-cancel-timing')?.value || 'none';
         const cReceived = document.getElementById('m-cancel-received')?.value || 'no';
 
-        displayResults('m-', state.m_origin, state.m_sido, state.m_sigungu, state.m_dong,
-          state.m_containerSize, state.m_rateType, state.m_oneway, state.m_selectedSurcharges,
-          w40, w20, state.m_returnLoad, wUnits, wLoc, cTiming, cReceived, state.m_scanner);
+        if (state.m_originMode === 'addr') {
+          // Reverse mode: origin is address, destination is port
+          // RATE_DATA[port][sido][sigungu][dong] — port becomes dest, address becomes origin key
+          const port = state.m_destPort;
+          const sido = state.m_originSido;
+          const sigungu = state.m_originSigungu;
+          const dong = state.m_originDong;
+          displayResults('m-', port, sido, sigungu, dong,
+            state.m_containerSize, state.m_rateType, state.m_oneway, state.m_selectedSurcharges,
+            w40, w20, state.m_returnLoad, wUnits, wLoc, cTiming, cReceived, state.m_scanner);
+        } else {
+          displayResults('m-', state.m_origin, state.m_sido, state.m_sigungu, state.m_dong,
+            state.m_containerSize, state.m_rateType, state.m_oneway, state.m_selectedSurcharges,
+            w40, w20, state.m_returnLoad, wUnits, wLoc, cTiming, cReceived, state.m_scanner);
+        }
       }
 
       // ============================================================
       // MANUAL MODE DROPDOWNS
       // ============================================================
+      // ============================================================
+      // MANUAL MODE - ORIGIN MODE TOGGLE
+      // ============================================================
+      // state.m_originMode: 'port' | 'addr'
+      function setManualOriginMode(mode) {
+        state.m_originMode = mode;
+        const portBtn = document.getElementById('m-origin-mode-port');
+        const addrBtn = document.getElementById('m-origin-mode-addr');
+        const portSec = document.getElementById('m-origin-port-section');
+        const addrSec = document.getElementById('m-origin-addr-section');
+        const destAddr = document.getElementById('m-dest-addr-section');
+        const destPort = document.getElementById('m-dest-port-section');
+
+        if (mode === 'port') {
+          portBtn.style.cssText = 'flex:1;padding:5px 0;font-size:0.75rem;font-weight:700;border-radius:6px;border:2px solid var(--orange);background:var(--orange);color:#fff;cursor:pointer;font-family:inherit;transition:all 0.2s';
+          addrBtn.style.cssText = 'flex:1;padding:5px 0;font-size:0.75rem;font-weight:700;border-radius:6px;border:2px solid rgba(0,200,255,0.4);background:transparent;color:var(--cyan);cursor:pointer;font-family:inherit;transition:all 0.2s';
+          portSec.style.display = '';
+          addrSec.style.display = 'none';
+          destAddr.style.display = '';
+          destPort.style.display = 'none';
+        } else {
+          addrBtn.style.cssText = 'flex:1;padding:5px 0;font-size:0.75rem;font-weight:700;border-radius:6px;border:2px solid var(--cyan);background:var(--cyan);color:#001a3d;cursor:pointer;font-family:inherit;transition:all 0.2s';
+          portBtn.style.cssText = 'flex:1;padding:5px 0;font-size:0.75rem;font-weight:700;border-radius:6px;border:2px solid rgba(255,130,0,0.4);background:transparent;color:var(--orange);cursor:pointer;font-family:inherit;transition:all 0.2s';
+          portSec.style.display = 'none';
+          addrSec.style.display = '';
+          destAddr.style.display = 'none';
+          destPort.style.display = '';
+          // Populate origin sido
+          populateManualOriginSido();
+          // Populate dest port
+          populateManualDestPort();
+        }
+        // Reset all state
+        state.m_origin = null; state.m_sido = null; state.m_sigungu = null; state.m_dong = null;
+        state.m_originSido = null; state.m_originSigungu = null; state.m_originDong = null;
+        state.m_destPort = null;
+        recalculateManual();
+      }
+
+      // Populate all sidos from RATE_DATA (union of all port destinations)
+      function populateManualOriginSido() {
+        const sidoSet = new Set();
+        Object.values(RATE_DATA).forEach(portData => Object.keys(portData).forEach(s => sidoSet.add(s)));
+        const sel = document.getElementById('m-origin-sido');
+        sel.innerHTML = '<option value="">시/도 선택...</option>';
+        [...sidoSet].sort().forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s; opt.textContent = s; sel.appendChild(opt);
+        });
+        document.getElementById('m-origin-sigungu').innerHTML = '<option value="">시/군/구 선택...</option>';
+        document.getElementById('m-origin-dong').innerHTML = '<option value="">행정동 선택...</option>';
+      }
+
+      function onManualOriginSidoChange() {
+        const sido = document.getElementById('m-origin-sido').value;
+        state.m_originSido = sido || null;
+        state.m_originSigungu = null; state.m_originDong = null;
+        const siSet = new Set();
+        Object.values(RATE_DATA).forEach(portData => {
+          if (portData[sido]) Object.keys(portData[sido]).forEach(sg => siSet.add(sg));
+        });
+        const sel = document.getElementById('m-origin-sigungu');
+        sel.innerHTML = '<option value="">시/군/구 선택...</option>';
+        [...siSet].sort().forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o); });
+        document.getElementById('m-origin-dong').innerHTML = '<option value="">행정동 선택...</option>';
+        recalculateManual();
+      }
+
+      function onManualOriginSigunguChange() {
+        const sido = state.m_originSido;
+        const sigungu = document.getElementById('m-origin-sigungu').value;
+        state.m_originSigungu = sigungu || null;
+        state.m_originDong = null;
+        const dongSet = new Set();
+        Object.values(RATE_DATA).forEach(portData => {
+          if (portData[sido]?.[sigungu]) Object.keys(portData[sido][sigungu]).forEach(d => dongSet.add(d));
+        });
+        const sel = document.getElementById('m-origin-dong');
+        sel.innerHTML = '<option value="">행정동 선택...</option>';
+        [...dongSet].sort().forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; sel.appendChild(o); });
+        recalculateManual();
+      }
+
+      function onManualOriginDongChange() {
+        const dong = document.getElementById('m-origin-dong').value;
+        state.m_originDong = dong || null;
+        recalculateManual();
+      }
+
+      function populateManualDestPort() {
+        const sel = document.getElementById('m-dest-port');
+        sel.innerHTML = '<option value="">항만 선택...</option>';
+        Object.keys(RATE_DATA).forEach(p => {
+          const o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o);
+        });
+      }
+
+      function onManualDestPortChange() {
+        const port = document.getElementById('m-dest-port').value;
+        state.m_destPort = port || null;
+        state.m_origin = port || null; // use dest port as the lookup key
+        recalculateManual();
+      }
+
+      // Populate port dropdown (used in port mode)
       function populateManualOrigin() {
         const sel = document.getElementById('m-origin');
         const origins = Object.keys(RATE_DATA);
-        origins.forEach((o, i) => {
+        origins.forEach(o => {
           const opt = document.createElement('option');
-          opt.value = o;
-          opt.textContent = `${i}. ${o}`;
-          sel.appendChild(opt);
+          opt.value = o; opt.textContent = o; sel.appendChild(opt);
         });
       }
 
