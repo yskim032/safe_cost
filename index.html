@@ -1594,7 +1594,7 @@
     <div id="manual-mode">
       <div class="panel-scroll" style="width:100%;max-width:1300px;margin:0 auto;padding:20px">
 
-        <div style="display:grid;grid-template-columns:0.85fr 1.35fr 0.9fr;gap:20px">
+        <div style="display:grid;grid-template-columns:0.9fr 1.3fr 0.9fr;gap:20px">
           <!-- Left Column -->
           <div>
             <!-- ORIGIN CARD -->
@@ -1662,7 +1662,10 @@
                 </label>
               </div>
             </div>
+          </div>
 
+          <!-- Middle Column: Container Settings + Surcharges -->
+          <div>
             <div class="card">
               <div class="card-title">컨테이너 설정</div>
               <div class="form-group">
@@ -1695,10 +1698,6 @@
                 </div>
               </div>
             </div>
-          </div>
-
-          <!-- Right Column: Surcharges -->
-          <div>
             <div class="card">
               <div class="card-title collapse-toggle" onclick="toggleCollapse(this)">
                 <span>할증 설정</span><span class="collapse-icon">▼</span>
@@ -2580,39 +2579,49 @@
         const onewayWrap = document.getElementById('m-oneway-wrap');
         if (onewayWrap) onewayWrap.style.display = ONEWAY_ELIGIBLE_ORIGINS.includes(origin) ? 'block' : 'none';
 
-        // Reset destination dropdowns
+        // Reset cascading dropdowns
         const sidoSel = document.getElementById('m-sido');
         const sigunguSel = document.getElementById('m-sigungu');
         const dongSel = document.getElementById('m-dong');
-        if (sidoSel) {
-          sidoSel.innerHTML = '<option value="">시/도 선택...</option>';
-          sigunguSel.innerHTML = '<option value="">시/군/구 선택...</option>';
-          dongSel.innerHTML = '<option value="">행정동 선택...</option>';
-        }
-
-        // Reset origin address dropdowns
         const orgSido = document.getElementById('m-org-sido');
         const orgSigungu = document.getElementById('m-org-sigungu');
         const orgDong = document.getElementById('m-org-dong');
+
+        [sidoSel, sigunguSel, dongSel, orgSido, orgSigungu, orgDong].forEach(el => {
+          if (el) el.innerHTML = `<option value="">${el.id.includes('sido') ? '시/도' : el.id.includes('sigungu') ? '시/군/구' : '행정동'} 선택...</option>`;
+        });
+
+        // Populate 시/도 filtered by selected port
+        if (origin && RATE_DATA[origin]) {
+          const sidos = Object.keys(RATE_DATA[origin]).sort();
+          sidos.forEach(s => {
+            const o1 = document.createElement('option'); o1.value = s; o1.textContent = s;
+            if (orgSido) orgSido.appendChild(o1);
+            const o2 = document.createElement('option'); o2.value = s; o2.textContent = s;
+            if (sidoSel) sidoSel.appendChild(o2);
+          });
+        } else {
+          // No port selected? Restore all sidos
+          populateInitialManualSidos();
+        }
+        recalculateManual();
+      }
+
+      // Pre-populate 시/도 with all unique values from RATE_DATA
+      function populateInitialManualSidos() {
+        const sidoSet = new Set();
+        Object.values(RATE_DATA).forEach(pd => Object.keys(pd).forEach(s => sidoSet.add(s)));
+        const sidos = [...sidoSet].sort();
+        const orgSido = document.getElementById('m-org-sido');
+        const destSido = document.getElementById('m-sido');
         if (orgSido) {
           orgSido.innerHTML = '<option value="">시/도 선택...</option>';
-          orgSigungu.innerHTML = '<option value="">시/군/구 선택...</option>';
-          orgDong.innerHTML = '<option value="">행정동 선택...</option>';
+          sidos.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; orgSido.appendChild(o); });
         }
-
-        if (!origin || !RATE_DATA[origin]) return;
-
-        // Populate origin address 시/도 (areas belonging to this port)
-        const sidos = Object.keys(RATE_DATA[origin]).sort();
-        sidos.forEach(s => {
-          if (orgSido) {
-            const o1 = document.createElement('option'); o1.value = s; o1.textContent = s; orgSido.appendChild(o1);
-          }
-          if (sidoSel) {
-            const o2 = document.createElement('option'); o2.value = s; o2.textContent = s; sidoSel.appendChild(o2);
-          }
-        });
-        recalculateManual();
+        if (destSido) {
+          destSido.innerHTML = '<option value="">시/도 선택...</option>';
+          sidos.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; destSido.appendChild(o); });
+        }
       }
 
       // Origin address cascades
@@ -2627,8 +2636,16 @@
         orgSigungu.innerHTML = '<option value="">시/군/구 선택...</option>';
         orgDong.innerHTML = '<option value="">행정동 선택...</option>';
 
-        if (!origin || !sido || !RATE_DATA[origin]?.[sido]) return;
-        Object.keys(RATE_DATA[origin][sido]).sort().forEach(sg => {
+        if (!sido) return;
+
+        // Gather unique sigungus for this sido
+        const siSet = new Set();
+        if (origin && RATE_DATA[origin]?.[sido]) {
+          Object.keys(RATE_DATA[origin][sido]).forEach(sg => siSet.add(sg));
+        } else {
+          Object.values(RATE_DATA).forEach(pd => { if (pd[sido]) Object.keys(pd[sido]).forEach(sg => siSet.add(sg)); });
+        }
+        [...siSet].sort().forEach(sg => {
           const o = document.createElement('option'); o.value = sg; o.textContent = sg; orgSigungu.appendChild(o);
         });
       }
@@ -2643,8 +2660,16 @@
         const orgDong = document.getElementById('m-org-dong');
         orgDong.innerHTML = '<option value="">행정동 선택...</option>';
 
-        if (!origin || !sido || !sigungu || !RATE_DATA[origin]?.[sido]?.[sigungu]) return;
-        Object.keys(RATE_DATA[origin][sido][sigungu]).sort().forEach(d => {
+        if (!sido || !sigungu) return;
+
+        // Gather unique dongs
+        const dongSet = new Set();
+        if (origin && RATE_DATA[origin]?.[sido]?.[sigungu]) {
+          Object.keys(RATE_DATA[origin][sido][sigungu]).forEach(d => dongSet.add(d));
+        } else {
+          Object.values(RATE_DATA).forEach(pd => { if (pd[sido]?.[sigungu]) Object.keys(pd[sido][sigungu]).forEach(d => dongSet.add(d)); });
+        }
+        [...dongSet].sort().forEach(d => {
           const o = document.createElement('option'); o.value = d; o.textContent = d; orgDong.appendChild(o);
         });
       }
@@ -2668,12 +2693,19 @@
         sigunguSel.innerHTML = '<option value="">시/군/구 선택...</option>';
         document.getElementById('m-dong').innerHTML = '<option value="">행정동 선택...</option>';
 
-        if (!origin || !sido || !RATE_DATA[origin]?.[sido]) return;
+        if (!sido) return;
 
-        const sigungus = Object.keys(RATE_DATA[origin][sido]).sort();
-        sigungus.forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s; opt.textContent = s;
+        // Gather sigungus: if port selected, filter by port; else union from all ports
+        const siSet = new Set();
+        if (origin && RATE_DATA[origin]?.[sido]) {
+          Object.keys(RATE_DATA[origin][sido]).forEach(sg => siSet.add(sg));
+        } else {
+          Object.values(RATE_DATA).forEach(pd => {
+            if (pd[sido]) Object.keys(pd[sido]).forEach(sg => siSet.add(sg));
+          });
+        }
+        [...siSet].sort().forEach(s => {
+          const opt = document.createElement('option'); opt.value = s; opt.textContent = s;
           sigunguSel.appendChild(opt);
         });
         recalculateManual();
@@ -2689,12 +2721,19 @@
         const dongSel = document.getElementById('m-dong');
         dongSel.innerHTML = '<option value="">행정동 선택...</option>';
 
-        if (!origin || !sido || !sigungu || !RATE_DATA[origin]?.[sido]?.[sigungu]) return;
+        if (!sido || !sigungu) return;
 
-        const dongs = Object.keys(RATE_DATA[origin][sido][sigungu]).sort();
-        dongs.forEach(d => {
-          const opt = document.createElement('option');
-          opt.value = d; opt.textContent = d;
+        // Gather dongs: if port selected, filter by port; else union from all ports
+        const dongSet = new Set();
+        if (origin && RATE_DATA[origin]?.[sido]?.[sigungu]) {
+          Object.keys(RATE_DATA[origin][sido][sigungu]).forEach(d => dongSet.add(d));
+        } else {
+          Object.values(RATE_DATA).forEach(pd => {
+            if (pd[sido]?.[sigungu]) Object.keys(pd[sido][sigungu]).forEach(d => dongSet.add(d));
+          });
+        }
+        [...dongSet].sort().forEach(d => {
+          const opt = document.createElement('option'); opt.value = d; opt.textContent = d;
           dongSel.appendChild(opt);
         });
         recalculateManual();
@@ -4505,8 +4544,11 @@
         buildSurchargeCheckboxes('');       // map mode (ids: surcharge-*)
         buildSurchargeCheckboxes('m-');     // manual mode (ids: m-surcharge-*)
 
-        // Populate manual origin dropdown
+        // Populate manual origin port dropdown
         populateManualOrigin();
+
+        // Populate initial address dropdowns (all sidos)
+        populateInitialManualSidos();
 
         // Init map
         const map = initMap();
