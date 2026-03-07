@@ -1604,7 +1604,7 @@
       <div id="map-container">
         <div id="map"></div>
         <!-- Range Explorer Button -->
-        <div id="range-explorer-btn" class="range-btn" onclick="toggleRangeExplorer()" title="반경 운임 분석">
+        <div id="range-explorer-btn" class="range-btn" title="반경 운임 분석 (클릭: 시작, 더블클릭: 종료)">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5"
             stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"></circle>
@@ -4798,43 +4798,50 @@
         isResizing: false
       };
 
-      function toggleRangeExplorer() {
-        if (rangeState.isResizing) return; // Ignore if just finished a drag
+      function startRangeExplorer() {
+        if (rangeState.active) return;
 
         const btn = document.getElementById('range-explorer-btn');
         const indicator = document.getElementById('range-radius-indicator');
         const sidebar = document.getElementById('range-sidebar');
 
-        if (rangeState.active) {
-          clearRangeExplorer();
-          btn.classList.remove('active');
-          indicator.style.display = 'none';
-          sidebar.style.display = 'none';
-          showToast('반경 분석 종료', 'info');
-          rangeState.active = false;
-        } else {
-          if (!state.destLatLng) {
-            showToast('도착지를 먼저 선택해주세요', 'error');
-            return;
-          }
-          rangeState.active = true;
-          btn.classList.add('active');
-          indicator.style.display = 'block';
-          sidebar.style.display = 'flex';
-          indicator.textContent = `${(rangeState.radius / 1000).toFixed(1)} km`;
-
-          if (!state.submunicipalGeo) {
-            showToast('전국 행정동 분석 데이터를 호출합니다...', 'info');
-            fetch(SUBMUNICIPAL_URL).then(r => r.json()).then(data => {
-              state.submunicipalGeo = data;
-              if (rangeState.active) refreshRangeAnalysis();
-            });
-          }
-
-          initRangeInteraction();
-          refreshRangeAnalysis();
-          showToast('반경 분석 활성화', 'success');
+        if (!state.destLatLng) {
+          showToast('도착지를 먼저 선택해주세요', 'error');
+          return;
         }
+
+        rangeState.active = true;
+        btn.classList.add('active');
+        indicator.style.display = 'block';
+        sidebar.style.display = 'flex';
+        indicator.textContent = `${(rangeState.radius / 1000).toFixed(1)} km`;
+
+        if (!state.submunicipalGeo) {
+          showToast('전국 행정동 분석 데이터를 호출합니다...', 'info');
+          fetch(SUBMUNICIPAL_URL).then(r => r.json()).then(data => {
+            state.submunicipalGeo = data;
+            if (rangeState.active) refreshRangeAnalysis();
+          });
+        }
+
+        initRangeInteraction();
+        refreshRangeAnalysis();
+        showToast('반경 분석 활성화', 'success');
+      }
+
+      function stopRangeExplorer() {
+        if (!rangeState.active) return;
+
+        const btn = document.getElementById('range-explorer-btn');
+        const indicator = document.getElementById('range-radius-indicator');
+        const sidebar = document.getElementById('range-sidebar');
+
+        clearRangeExplorer();
+        btn.classList.remove('active');
+        indicator.style.display = 'none';
+        sidebar.style.display = 'none';
+        showToast('반경 분석 종료', 'info');
+        rangeState.active = false;
       }
 
       function clearRangeExplorer() {
@@ -5106,6 +5113,19 @@
 
         // Init map
         const map = initMap();
+
+        // Range Button Listeners
+        const rangeBtn = document.getElementById('range-explorer-btn');
+        if (rangeBtn) {
+          rangeBtn.addEventListener('click', () => {
+            if (!rangeState.active) startRangeExplorer();
+          });
+          rangeBtn.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            stopRangeExplorer();
+          });
+        }
 
         // Load GeoJSON
         const geoLayer = await loadGeoJSON(map);
