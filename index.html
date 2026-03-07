@@ -3991,135 +3991,226 @@
       }
 
       // ============================================================
-      // BEZIER CURVE SVG ANIMATION (PORT-I Style)
+      // PREMIUM ROUTE ANIMATION
       // ============================================================
       function updateRouteSVG() {
-        const svg = document.getElementById('route-svg');
         const group = document.getElementById('route-group');
         if (!group || !state.map) return;
-
         group.innerHTML = '';
-
         if (!state.originLatLng || !state.destLatLng) return;
 
         const map = state.map;
-        const originPx = map.latLngToContainerPoint(state.originLatLng);
-        const destPx = map.latLngToContainerPoint(state.destLatLng);
+        const oP = map.latLngToContainerPoint(state.originLatLng);
+        const dP = map.latLngToContainerPoint(state.destLatLng);
 
-        // Control point for bezier arc
-        const dx = destPx.x - originPx.x;
-        const dy = destPx.y - originPx.y;
+        const dx = dP.x - oP.x, dy = dP.y - oP.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 2) return;
 
-        const cpOffset = dist * 0.28;
+        // Two-control-point cubic bezier for more elegant curve
         const angle = Math.atan2(dy, dx);
-        const perpAngle = angle - Math.PI / 2;
-        const cpX = (originPx.x + destPx.x) / 2 + cpOffset * Math.cos(perpAngle);
-        const cpY = (originPx.y + destPx.y) / 2 + cpOffset * Math.sin(perpAngle);
+        const perp = angle - Math.PI / 2;
+        const cpOff1 = dist * 0.35;
+        const cpOff2 = dist * 0.2;
+        const cp1x = oP.x + dx * 0.25 + cpOff1 * Math.cos(perp);
+        const cp1y = oP.y + dy * 0.25 + cpOff1 * Math.sin(perp);
+        const cp2x = oP.x + dx * 0.75 + cpOff2 * Math.cos(perp);
+        const cp2y = oP.y + dy * 0.75 + cpOff2 * Math.sin(perp);
+        const pathD = `M${oP.x},${oP.y} C${cp1x},${cp1y} ${cp2x},${cp2y} ${dP.x},${dP.y}`;
+        const pathLen = Math.round(dist * 1.15);
 
-        const pathD = `M${originPx.x},${originPx.y} Q${cpX},${cpY} ${destPx.x},${destPx.y}`;
+        const NS = 'http://www.w3.org/2000/svg';
+        const mk = (tag) => document.createElementNS(NS, tag);
+        const defs = document.getElementById('route-svg').querySelector('defs');
 
-        // Approximate path length for dasharray
-        const pathLen = Math.round(dist * 1.1);
+        // ── Unique IDs to avoid conflicts
+        const uid = Date.now();
+        const trackId = `rt-${uid}`;
+        const grad1Id = `rg1-${uid}`;
+        const grad2Id = `rg2-${uid}`;
+        const blurId = `rb-${uid}`;
+        const blur2Id = `rb2-${uid}`;
 
-        // Background glow path
-        const bgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        bgPath.setAttribute('d', pathD);
-        bgPath.setAttribute('fill', 'none');
-        bgPath.setAttribute('stroke', 'rgba(255,130,0,0.1)');
-        bgPath.setAttribute('stroke-width', '6');
-        bgPath.setAttribute('stroke-linecap', 'round');
-        group.appendChild(bgPath);
+        // ── Extra defs: gradients + blur filters ─────────────────
+        const g1 = mk('linearGradient');
+        g1.id = grad1Id; g1.setAttribute('gradientUnits', 'userSpaceOnUse');
+        g1.setAttribute('x1', oP.x); g1.setAttribute('y1', oP.y);
+        g1.setAttribute('x2', dP.x); g1.setAttribute('y2', dP.y);
+        const s1a = mk('stop'); s1a.setAttribute('offset', '0%'); s1a.setAttribute('stop-color', '#FF8200');
+        const s1b = mk('stop'); s1b.setAttribute('offset', '50%'); s1b.setAttribute('stop-color', '#FFE040');
+        const s1c = mk('stop'); s1c.setAttribute('offset', '100%'); s1c.setAttribute('stop-color', '#00C8FF');
+        g1.append(s1a, s1b, s1c);
+        defs.appendChild(g1);
 
-        // Main animated path - gradient via filter
-        const mainPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        mainPath.setAttribute('d', pathD);
-        mainPath.setAttribute('fill', 'none');
-        mainPath.setAttribute('stroke', 'url(#routeGrad)');
-        mainPath.setAttribute('stroke-width', '2.5');
-        mainPath.setAttribute('stroke-linecap', 'round');
-        mainPath.setAttribute('stroke-dasharray', '12 8');
-        mainPath.setAttribute('stroke-dashoffset', '0');
-        mainPath.style.animation = 'dashFlow 1.5s linear infinite';
-        mainPath.setAttribute('filter', 'url(#glow)');
-        group.appendChild(mainPath);
+        const g2 = mk('linearGradient');
+        g2.id = grad2Id; g2.setAttribute('gradientUnits', 'userSpaceOnUse');
+        g2.setAttribute('x1', oP.x); g2.setAttribute('y1', oP.y);
+        g2.setAttribute('x2', dP.x); g2.setAttribute('y2', dP.y);
+        const s2a = mk('stop'); s2a.setAttribute('offset', '0%'); s2a.setAttribute('stop-color', 'rgba(255,130,0,0.0)');
+        const s2b = mk('stop'); s2b.setAttribute('offset', '50%'); s2b.setAttribute('stop-color', 'rgba(255,220,80,0.35)');
+        const s2c = mk('stop'); s2c.setAttribute('offset', '100%'); s2c.setAttribute('stop-color', 'rgba(0,200,255,0.0)');
+        g2.append(s2a, s2b, s2c);
+        defs.appendChild(g2);
 
-        // Solid underline (static)
-        const solidPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        solidPath.setAttribute('d', pathD);
-        solidPath.setAttribute('fill', 'none');
-        solidPath.setAttribute('stroke', 'rgba(255,130,0,0.25)');
-        solidPath.setAttribute('stroke-width', '1');
-        solidPath.setAttribute('stroke-linecap', 'round');
-        group.appendChild(solidPath);
+        const fBlur = mk('filter'); fBlur.id = blurId;
+        const fgb = mk('feGaussianBlur'); fgb.setAttribute('stdDeviation', '5');
+        fBlur.appendChild(fgb); defs.appendChild(fBlur);
 
-        // Origin endpoint - orange pulsing circle
-        addEndpointCircle(group, originPx.x, originPx.y, '#FF8200', 'endpointPulse');
+        const fBlur2 = mk('filter'); fBlur2.id = blur2Id;
+        const fgb2 = mk('feGaussianBlur'); fgb2.setAttribute('stdDeviation', '2.5');
+        fBlur2.appendChild(fgb2); defs.appendChild(fBlur2);
 
-        // Dest endpoint - cyan pulsing circle
-        addEndpointCircle(group, destPx.x, destPx.y, '#00C8FF', 'endpointPulse');
+        // ── Layer 1: Wide outer GLOW (fat blurred) ───────────────
+        const outerGlow = mk('path');
+        outerGlow.setAttribute('d', pathD);
+        outerGlow.setAttribute('fill', 'none');
+        outerGlow.setAttribute('stroke', `url(#${grad2Id})`);
+        outerGlow.setAttribute('stroke-width', '20');
+        outerGlow.setAttribute('stroke-linecap', 'round');
+        outerGlow.setAttribute('filter', `url(#${blurId})`);
+        group.appendChild(outerGlow);
 
-        // Moving particle along path
-        addMovingParticle(group, pathD, pathLen);
+        // ── Layer 2: Medium glow ─────────────────────────────────
+        const midGlow = mk('path');
+        midGlow.setAttribute('d', pathD);
+        midGlow.setAttribute('fill', 'none');
+        midGlow.setAttribute('stroke', `url(#${grad1Id})`);
+        midGlow.setAttribute('stroke-width', '6');
+        midGlow.setAttribute('stroke-linecap', 'round');
+        midGlow.setAttribute('opacity', '0.35');
+        midGlow.setAttribute('filter', `url(#${blur2Id})`);
+        group.appendChild(midGlow);
+
+        // ── Layer 3: Thin sharp core ─────────────────────────────
+        const core = mk('path');
+        core.setAttribute('d', pathD);
+        core.setAttribute('fill', 'none');
+        core.setAttribute('stroke', `url(#${grad1Id})`);
+        core.setAttribute('stroke-width', '1.5');
+        core.setAttribute('stroke-linecap', 'round');
+        core.setAttribute('filter', 'url(#glow)');
+        group.appendChild(core);
+
+        // ── Layer 4: Dash stream (energy packets) ────────────────
+        const dashStream = mk('path');
+        dashStream.setAttribute('d', pathD);
+        dashStream.setAttribute('fill', 'none');
+        dashStream.setAttribute('stroke', `url(#${grad1Id})`);
+        dashStream.setAttribute('stroke-width', '2.5');
+        dashStream.setAttribute('stroke-linecap', 'round');
+        dashStream.setAttribute('stroke-dasharray', `${Math.max(4, pathLen * 0.06)} ${Math.max(10, pathLen * 0.12)}`);
+        dashStream.setAttribute('stroke-dashoffset', '0');
+        dashStream.setAttribute('filter', 'url(#glow)');
+        dashStream.style.animation = 'routeDash 1.2s linear infinite';
+        group.appendChild(dashStream);
+
+        // ── Layer 5: Reverse faint dash for depth ────────────────
+        const dashBack = mk('path');
+        dashBack.setAttribute('d', pathD);
+        dashBack.setAttribute('fill', 'none');
+        dashBack.setAttribute('stroke', '#ffffff');
+        dashBack.setAttribute('stroke-width', '1');
+        dashBack.setAttribute('stroke-linecap', 'round');
+        dashBack.setAttribute('opacity', '0.12');
+        dashBack.setAttribute('stroke-dasharray', `${Math.max(2, pathLen * 0.03)} ${Math.max(16, pathLen * 0.18)}`);
+        dashBack.style.animation = 'routeDashRev 2.4s linear infinite';
+        group.appendChild(dashBack);
+
+        // ── Hidden track for particle motion ────────────────────
+        const track = mk('path');
+        track.id = trackId;
+        track.setAttribute('d', pathD);
+        track.setAttribute('fill', 'none');
+        track.setAttribute('stroke', 'none');
+        group.appendChild(track);
+
+        // ── 3 staggered particles ────────────────────────────────
+        const particles = [
+          { r: 5, fill: '#FFFFFF', opacity: '1.0', dur: '1.8s', delay: '0s', glow: true },
+          { r: 3, fill: '#FFE080', opacity: '0.85', dur: '1.8s', delay: '0.6s', glow: false },
+          { r: 2, fill: '#00E8FF', opacity: '0.70', dur: '1.8s', delay: '1.2s', glow: false },
+        ];
+        particles.forEach(({ r, fill, opacity, dur, delay, glow }) => {
+          const p = mk('circle');
+          p.setAttribute('r', r);
+          p.setAttribute('fill', fill);
+          p.setAttribute('opacity', opacity);
+          if (glow) p.setAttribute('filter', 'url(#glow)');
+          const am = mk('animateMotion');
+          am.setAttribute('dur', dur);
+          am.setAttribute('begin', delay);
+          am.setAttribute('repeatCount', 'indefinite');
+          am.setAttribute('calcMode', 'spline');
+          am.setAttribute('keyTimes', '0;1');
+          am.setAttribute('keySplines', '0.4 0 0.6 1');
+          const mp = mk('mpath');
+          mp.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#' + trackId);
+          am.appendChild(mp); p.appendChild(am);
+          group.appendChild(p);
+        });
+
+        // ── Endpoint rings ────────────────────────────────────────
+        addPremiumEndpoint(group, mk, oP.x, oP.y, '#FF8200', '#FFAA40');
+        addPremiumEndpoint(group, mk, dP.x, dP.y, '#00C8FF', '#80F0FF');
+
+        // Inject keyframes once
+        if (!document.getElementById('route-anim-style')) {
+          const sty = document.createElement('style');
+          sty.id = 'route-anim-style';
+          sty.textContent = `
+            @keyframes routeDash {
+              from { stroke-dashoffset: 0; }
+              to   { stroke-dashoffset: -${pathLen * 2}px; }
+            }
+            @keyframes routeDashRev {
+              from { stroke-dashoffset: 0; }
+              to   { stroke-dashoffset: ${pathLen * 2}px; }
+            }
+            @keyframes ringPulse {
+              0%   { r: 5;  opacity: 0.9; }
+              100% { r: 26; opacity: 0; }
+            }
+            @keyframes ringPulse2 {
+              0%   { r: 5;  opacity: 0.5; }
+              100% { r: 18; opacity: 0; }
+            }
+            @keyframes endpointPulse {
+              0%   { r: 5;  opacity: 0.9; }
+              100% { r: 22; opacity: 0; }
+            }
+          `;
+          document.head.appendChild(sty);
+        }
       }
 
-      function addEndpointCircle(group, cx, cy, color, animClass) {
-        // Static center dot
-        const inner = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        inner.setAttribute('cx', cx); inner.setAttribute('cy', cy);
-        inner.setAttribute('r', '5');
-        inner.setAttribute('fill', color);
-        inner.setAttribute('filter', 'url(#glow)');
+      function addPremiumEndpoint(group, mk, cx, cy, color, colorLight) {
+        // Outermost slow-expanding ring
+        const ring3 = mk('circle');
+        ring3.setAttribute('cx', cx); ring3.setAttribute('cy', cy); ring3.setAttribute('r', '5');
+        ring3.setAttribute('fill', 'none'); ring3.setAttribute('stroke', color);
+        ring3.setAttribute('stroke-width', '1');
+        ring3.style.animation = 'ringPulse 2.4s ease-out 0.4s infinite';
+        group.appendChild(ring3);
+
+        // Mid ring
+        const ring2 = mk('circle');
+        ring2.setAttribute('cx', cx); ring2.setAttribute('cy', cy); ring2.setAttribute('r', '5');
+        ring2.setAttribute('fill', 'none'); ring2.setAttribute('stroke', colorLight);
+        ring2.setAttribute('stroke-width', '1.5');
+        ring2.style.animation = 'ringPulse2 1.6s ease-out infinite';
+        group.appendChild(ring2);
+
+        // Bright core dot with glow
+        const core = mk('circle');
+        core.setAttribute('cx', cx); core.setAttribute('cy', cy); core.setAttribute('r', '5');
+        core.setAttribute('fill', color); core.setAttribute('filter', 'url(#glow)');
+        group.appendChild(core);
+
+        // Crisp inner bright dot
+        const inner = mk('circle');
+        inner.setAttribute('cx', cx); inner.setAttribute('cy', cy); inner.setAttribute('r', '2.5');
+        inner.setAttribute('fill', '#ffffff');
         group.appendChild(inner);
-
-        // Pulsing ring
-        const outer = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        outer.setAttribute('cx', cx); outer.setAttribute('cy', cy);
-        outer.setAttribute('r', '5');
-        outer.setAttribute('fill', 'none');
-        outer.setAttribute('stroke', color);
-        outer.setAttribute('stroke-width', '1.5');
-        outer.style.animation = `${animClass} 1.8s ease-out infinite`;
-        group.appendChild(outer);
-
-        const outer2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        outer2.setAttribute('cx', cx); outer2.setAttribute('cy', cy);
-        outer2.setAttribute('r', '5');
-        outer2.setAttribute('fill', 'none');
-        outer2.setAttribute('stroke', color);
-        outer2.setAttribute('stroke-width', '1');
-        outer2.style.animation = `${animClass} 1.8s ease-out 0.6s infinite`;
-        group.appendChild(outer2);
-      }
-
-      function addMovingParticle(group, pathD, pathLen) {
-        // Create a path element for the particle to animate along
-        const particlePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        particlePath.setAttribute('d', pathD);
-        particlePath.setAttribute('fill', 'none');
-        particlePath.setAttribute('stroke', 'none');
-        particlePath.setAttribute('id', 'particle-track-' + Date.now());
-        group.appendChild(particlePath);
-
-        // Particle circle using animateMotion
-        const particle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        particle.setAttribute('r', '4');
-        particle.setAttribute('fill', '#ffffff');
-        particle.setAttribute('filter', 'url(#glow)');
-        particle.setAttribute('opacity', '0.9');
-
-        const animMotion = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
-        animMotion.setAttribute('dur', '2.5s');
-        animMotion.setAttribute('repeatCount', 'indefinite');
-        animMotion.setAttribute('calcMode', 'spline');
-        animMotion.setAttribute('keySplines', '0.4 0 0.6 1');
-
-        const mpath = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
-        mpath.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#' + particlePath.getAttribute('id'));
-        animMotion.appendChild(mpath);
-        particle.appendChild(animMotion);
-        group.appendChild(particle);
       }
 
       // ============================================================
