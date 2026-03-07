@@ -60,7 +60,7 @@
       align-items: center;
       justify-content: center;
       z-index: 10000;
-      transition: opacity 0.6s ease;
+      transition: opacity 1.5s ease-out;
     }
 
     #loading-overlay.hidden {
@@ -1360,7 +1360,7 @@
   <div id="header">
     <div class="header-logo" style="font-size: 1.7rem; font-weight: bold;">MSC KOREA</div>
     <div class="header-divider"></div>
-    <div class="header-title" style="font-size: 1.7rem; font-weight: bold;">2026 안전운임 계산기</div>
+    <div class="header-title" style="font-size: 1.7rem; font-weight: bold;">2026 안전운임 계산기 by The End - YS</div>
     <div class="mode-tabs">
       <button class="mode-tab active" id="tab-map" onclick="switchMode('map')">지도 기반</button>
       <button class="mode-tab" id="tab-manual" onclick="switchMode('manual')">직접 입력</button>
@@ -1765,7 +1765,6 @@
               <div style="text-align:center;padding:12px 0">
                 <div class="result-total-label" style="text-align:left">합계 금액 (VAT 별도)</div>
                 <div class="result-total-amount num" id="m-result-total" style="font-size:2.4rem">—</div>
-                <div class="result-vat">※ 부가가치세(10%) 별도</div>
               </div>
               <div id="m-result-detail" style="display:none">
                 <div class="active-rate-display">
@@ -4223,8 +4222,10 @@
 
         // Hide loading overlay
         const overlay = document.getElementById('loading-overlay');
-        overlay.classList.add('hidden');
-        setTimeout(() => overlay.remove(), 700);
+        setTimeout(() => {
+          overlay.classList.add('hidden');
+          setTimeout(() => overlay.remove(), 1600);
+        }, 1500);
 
         showToast('MSC KOREA 안전운임 계산기 준비완료', 'success');
       }
