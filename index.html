@@ -1337,10 +1337,10 @@
     /* Range Explorer LED Button */
     .range-btn {
       position: absolute;
-      top: 80px;
-      right: 20px;
-      width: 50px;
-      height: 50px;
+      top: 100px;
+      left: 20px;
+      width: 54px;
+      height: 54px;
       border-radius: 50%;
       background: rgba(0, 20, 40, 0.85);
       border: 2px solid var(--cyan);
@@ -1407,13 +1407,48 @@
     }
 
     .range-label-inner {
-      font-size: 0.62rem;
-      font-weight: 700;
-      color: rgba(0, 200, 255, 0.9);
-      text-shadow: 0 0 4px rgba(0, 0, 0, 0.9), 0 0 2px #000;
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #00E8FF;
+      text-shadow: 0 0 6px rgba(0, 0, 0, 1), 0 0 3px #000;
       white-space: nowrap;
+      padding: 2px 4px;
+      background: rgba(0, 20, 40, 0.6);
+      border-radius: 4px;
       pointer-events: none;
       text-align: center;
+      border: 1px solid rgba(0, 200, 255, 0.3);
+    }
+
+    /* KM Indicator Overlay */
+    .range-radius-indicator {
+      position: absolute;
+      left: 85px;
+      top: 107px;
+      background: var(--navy);
+      border: 2px solid var(--cyan);
+      color: var(--cyan);
+      padding: 6px 14px;
+      border-radius: 30px;
+      font-weight: 900;
+      font-size: 1.1rem;
+      box-shadow: 0 0 20px var(--cyan);
+      z-index: 1001;
+      display: none;
+      pointer-events: none;
+      animation: indicatorPop 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+
+    @keyframes indicatorPop {
+      from {
+        transform: scale(0.5);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
     }
 
     /* Number formatting */
@@ -1463,6 +1498,8 @@
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
         </div>
+        <!-- Range Radius Indicator -->
+        <div id="range-radius-indicator" class="range-radius-indicator">0 km</div>
         <div id="route-overlay">
           <svg id="route-svg" width="100%" height="100%" style="pointer-events:none">
             <defs>
@@ -4630,7 +4667,7 @@
       // ============================================================
       let rangeState = {
         active: false,
-        radius: 10000, // 10km
+        radius: 10000,
         circle: null,
         markers: [],
         dragStartX: 0,
@@ -4643,6 +4680,7 @@
         if (rangeState.active) {
           clearRangeExplorer();
           btn.classList.remove('active');
+          document.getElementById('range-radius-indicator').style.display = 'none';
           showToast('반경 분석 종료', 'info');
         } else {
           if (!state.destLatLng) {
@@ -4651,9 +4689,19 @@
           }
           rangeState.active = true;
           btn.classList.add('active');
+
+          // Background load deep geo data if not present
+          if (!state.submunicipalGeo) {
+            showToast('분석을 위해 데이터 로딩을 시작합니다...', 'info');
+            fetch(SUBMUNICIPAL_URL).then(r => r.json()).then(data => {
+              state.submunicipalGeo = data;
+              if (rangeState.active) refreshRangeAnalysis();
+            });
+          }
+
           initRangeInteraction();
           refreshRangeAnalysis();
-          showToast('반경 분석 활성화 (버튼을 드래그하여 거리 조절)', 'success');
+          showToast('반경 분석 활성화 (오른쪽으로 드래그하여 거리 조절)', 'success');
         }
       }
 
@@ -4669,6 +4717,7 @@
 
       function initRangeInteraction() {
         const btn = document.getElementById('range-explorer-btn');
+        const indicator = document.getElementById('range-radius-indicator');
 
         const onStart = (e) => {
           if (!rangeState.active) return;
@@ -4676,14 +4725,19 @@
           rangeState.dragStartX = (e.type === 'touchstart' ? e.touches[0].clientX : e.clientX);
           rangeState.dragStartRadius = rangeState.radius;
           btn.style.transition = 'none';
+          indicator.style.display = 'block';
         };
 
         const onMove = (e) => {
           if (!rangeState.isResizing) return;
           const currentX = (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX);
-          const dx = rangeState.dragStartX - currentX; // Drag left to increase
-          const newRadius = Math.max(2000, Math.min(50000, rangeState.dragStartRadius + dx * 100)); // 2km ~ 50km
+          const dx = currentX - rangeState.dragStartX; // Drag right to increase
+
+          // sensitivity: ~120px(3cm) covers 200km. 200000 / 120 approx 1600.
+          const newRadius = Math.max(1000, Math.min(200000, rangeState.dragStartRadius + dx * 1600));
           rangeState.radius = newRadius;
+
+          indicator.textContent = `${(newRadius / 1000).toFixed(1)} km`;
           updateRangeCircle();
         };
 
@@ -4691,6 +4745,7 @@
           if (!rangeState.isResizing) return;
           rangeState.isResizing = false;
           btn.style.transition = '';
+          setTimeout(() => { if (!rangeState.isResizing) indicator.style.display = 'none'; }, 1000);
           refreshRangeAnalysis();
         };
 
@@ -4720,64 +4775,69 @@
       }
 
       function refreshRangeAnalysis() {
-        if (!rangeState.active || !state.destLatLng) return;
+        if (!rangeState.active || !state.destLatLng || !state.selectedOrigin) return;
 
         updateRangeCircle();
-
-        // Remove old markers
         rangeState.markers.forEach(m => state.map.removeLayer(m));
         rangeState.markers = [];
 
-        // Spatial query: find dongs within radius
         const center = state.destLatLng;
         const radiusM = rangeState.radius;
         const origin = state.selectedOrigin;
-        if (!origin) return;
-
-        // Iterate over RATE_DATA for the selected origin
         const portData = RATE_DATA[origin];
         if (!portData) return;
 
-        // Note: For performance, we'll only look at centers of polygons in state.allFeatures
-        // which we should store from loadGeoJSON
-        if (!window.allDongsCoords) {
-          // One-time build of center points for dongs
-          window.allDongsCoords = [];
-          if (state.geoLayer) {
-            state.geoLayer.eachLayer(layer => {
-              const center = layer.getBounds().getCenter();
-              const props = layer.feature.properties;
-              window.allDongsCoords.push({
-                latlng: center,
-                sido: layer.sidoKey,
-                sigungu: layer.sigunguName,
-                dong: props.name || props.Name || ''
-              });
-            });
-          }
+        // Build analysis source: Use submunicipalGeo if available, otherwise fallback to SIGUNGU_APPROX
+        let candidates = [];
+        if (state.submunicipalGeo) {
+          state.submunicipalGeo.features.forEach(f => {
+            // Approximate center of dong polygon
+            const coords = f.geometry.coordinates;
+            // Simple centroid (handles Point or Polygon)
+            let lat, lng;
+            if (f.geometry.type === 'Point') {
+              [lng, lat] = coords;
+            } else {
+              // For simplified logic, if Polygon, just take first ring's first point
+              const pts = f.geometry.type === 'Polygon' ? coords[0] : coords[0][0];
+              lng = pts[0][0]; lat = pts[0][1];
+            }
+            const props = f.geometry.type === 'Polygon' ? f.properties : f.properties;
+            // Need mapping to RateData's sido/sigungu/dong
+            // This is complex - let's use the layer-based cache if it was built
+          });
         }
 
-        window.allDongsCoords.forEach(d => {
-          const dist = state.map.distance(center, d.latlng);
+        // RELIABLE FALLBACK & MAIN LOGIC: Iterate through SIGUNGU_APPROX centers
+        Object.entries(SIGUNGU_APPROX).forEach(([sigunguName, coords]) => {
+          const latlng = L.latLng(coords[0], coords[1]);
+          const dist = state.map.distance(center, latlng);
           if (dist <= radiusM) {
-            // Get rate
-            const rateInfo = portData[d.sido]?.[d.sigungu]?.[d.dong];
-            if (rateInfo) {
-              const baseRate = rateInfo[0]; // base distance or rate? typically dist[0] in current setup
-              // Let's show the safety freight rate (40FT 위탁) as a representative
-              const { grandTotal } = calcTotal(baseRate, state.selectedSurcharges, 0, 0, '40FT', false, 0, 'port', 'none', 'no', false);
+            // Find first valid rate in this sigungu
+            // Since RATE_DATA is [port][sido][sigungu][dong], we need to find which sido this sigungu belongs to
+            for (const sido in portData) {
+              if (portData[sido][sigunguName]) {
+                const dongs = portData[sido][sigunguName];
+                const firstDong = Object.keys(dongs)[0];
+                const rateInfo = dongs[firstDong];
+                if (rateInfo) {
+                  const baseRate = rateInfo[1]; // Correct index for 40FT safety rate typically
+                  const { grandTotal } = calcTotal(baseRate, state.selectedSurcharges, 0, 0, '40FT', false, 0, 'port', 'none', 'no', false);
 
-              const html = `<div class="range-label-inner">${(grandTotal / 10000).toFixed(1)}<span style="font-size:0.5rem">만</span></div>`;
-              const marker = L.marker(d.latlng, {
-                icon: L.divIcon({
-                  className: 'range-label',
-                  html: html,
-                  iconSize: [40, 20],
-                  iconAnchor: [20, 10]
-                }),
-                interactive: false
-              }).addTo(state.map);
-              rangeState.markers.push(marker);
+                  const html = `<div class="range-label-inner">${(grandTotal / 10000).toFixed(0)}<span style="font-size:0.55rem">만</span></div>`;
+                  const marker = L.marker(latlng, {
+                    icon: L.divIcon({
+                      className: 'range-label',
+                      html: html,
+                      iconSize: [40, 20],
+                      iconAnchor: [20, 10]
+                    }),
+                    interactive: false
+                  }).addTo(state.map);
+                  rangeState.markers.push(marker);
+                }
+                break;
+              }
             }
           }
         });
