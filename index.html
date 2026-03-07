@@ -2549,21 +2549,27 @@
         state.m_sido = null; state.m_sigungu = null; state.m_dong = null;
         state.m_oneway = false;
 
-        // Check oneway eligibility
+        // Check oneway eligibility (null-safe)
         const onewayWrap = document.getElementById('m-oneway-wrap');
         if (onewayWrap) {
           onewayWrap.style.display = ONEWAY_ELIGIBLE_ORIGINS.includes(origin) ? 'block' : 'none';
         }
-        document.getElementById('m-oneway-cb-box').classList.remove('checked');
+        const cbBox = document.getElementById('m-oneway-cb-box');
+        if (cbBox) cbBox.classList.remove('checked');
 
-        // Populate 시도
+        // Reset cascading dropdowns
         const sidoSel = document.getElementById('m-sido');
+        const sigunguSel = document.getElementById('m-sigungu');
+        const dongSel = document.getElementById('m-dong');
+        if (!sidoSel) return;
+
         sidoSel.innerHTML = '<option value="">시/도 선택...</option>';
-        document.getElementById('m-sigungu').innerHTML = '<option value="">시/군/구 선택...</option>';
-        document.getElementById('m-dong').innerHTML = '<option value="">행정동 선택...</option>';
+        if (sigunguSel) sigunguSel.innerHTML = '<option value="">시/군/구 선택...</option>';
+        if (dongSel) dongSel.innerHTML = '<option value="">행정동 선택...</option>';
 
         if (!origin || !RATE_DATA[origin]) return;
 
+        // Populate 시/도 filtered by selected port
         const sidos = Object.keys(RATE_DATA[origin]).sort();
         sidos.forEach(s => {
           const opt = document.createElement('option');
