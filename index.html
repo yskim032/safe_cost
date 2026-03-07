@@ -1334,6 +1334,88 @@
       color: var(--orange);
     }
 
+    /* Range Explorer LED Button */
+    .range-btn {
+      position: absolute;
+      top: 80px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(0, 20, 40, 0.85);
+      border: 2px solid var(--cyan);
+      box-shadow: 0 0 15px rgba(0, 200, 255, 0.4), inset 0 0 10px rgba(0, 200, 255, 0.2);
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1000;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+
+    .range-btn:hover {
+      background: rgba(0, 40, 80, 0.9);
+      box-shadow: 0 0 25px rgba(0, 200, 255, 0.7), inset 0 0 15px rgba(0, 200, 255, 0.4);
+      transform: scale(1.05);
+    }
+
+    .range-btn.active {
+      background: var(--cyan);
+      color: #001a3d;
+      box-shadow: 0 0 35px var(--cyan);
+    }
+
+    .range-btn i {
+      font-size: 1.4rem;
+    }
+
+    /* LED Pulsing Circle Border */
+    .range-glow-circle {
+      stroke-dasharray: 10 5;
+      animation: rangeRotate 10s linear infinite, rangePulse 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes rangeRotate {
+      from {
+        stroke-dashoffset: 0;
+      }
+
+      to {
+        stroke-dashoffset: 150;
+      }
+    }
+
+    @keyframes rangePulse {
+      0% {
+        stroke-opacity: 0.4;
+        stroke-width: 2;
+      }
+
+      100% {
+        stroke-opacity: 0.9;
+        stroke-width: 4;
+      }
+    }
+
+    /* Range Data Text labels */
+    .range-label {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    .range-label-inner {
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: rgba(0, 200, 255, 0.9);
+      text-shadow: 0 0 4px rgba(0, 0, 0, 0.9), 0 0 2px #000;
+      white-space: nowrap;
+      pointer-events: none;
+      text-align: center;
+    }
+
     /* Number formatting */
     .num {
       font-variant-numeric: tabular-nums;
@@ -1373,21 +1455,8 @@
     <div id="map-mode">
       <div id="map-container">
         <div id="map"></div>
-        <svg id="route-svg" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="routeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" style="stop-color:#FF8200;stop-opacity:1" />
-              <stop offset="100%" style="stop-color:#00C8FF;stop-opacity:1" />
-            </linearGradient>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-              <feMerge>
-                <feMergeNode in="coloredBlur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          <g id="route-group"></g>
+        </defs>
+        <g id="route-group"></g>
         </svg>
         <div class="map-hint" id="map-hint">
           🚢 <strong>출발지 선택 모드</strong>: 항만 마커를 클릭하여 출발지를 선택하세요.
@@ -4534,6 +4603,164 @@
 
       function printResult() {
         window.print();
+      }
+
+      // ============================================================
+      // RANGE EXPLORER (Radius analysis)
+      // ============================================================
+      let rangeState = {
+        active: false,
+        radius: 10000, // 10km
+        circle: null,
+        markers: [],
+        dragStartX: 0,
+        dragStartRadius: 0,
+        isResizing: false
+      };
+
+      function toggleRangeExplorer() {
+        const btn = document.getElementById('range-explorer-btn');
+        if (rangeState.active) {
+          clearRangeExplorer();
+          btn.classList.remove('active');
+          showToast('반경 분석 종료', 'info');
+        } else {
+          if (!state.destLatLng) {
+            showToast('도착지를 먼저 선택해주세요', 'error');
+            return;
+          }
+          rangeState.active = true;
+          btn.classList.add('active');
+          initRangeInteraction();
+          refreshRangeAnalysis();
+          showToast('반경 분석 활성화 (버튼을 드래그하여 거리 조절)', 'success');
+        }
+      }
+
+      function clearRangeExplorer() {
+        rangeState.active = false;
+        if (rangeState.circle) {
+          state.map.removeLayer(rangeState.circle);
+          rangeState.circle = null;
+        }
+        rangeState.markers.forEach(m => state.map.removeLayer(m));
+        rangeState.markers = [];
+      }
+
+      function initRangeInteraction() {
+        const btn = document.getElementById('range-explorer-btn');
+
+        const onStart = (e) => {
+          if (!rangeState.active) return;
+          rangeState.isResizing = true;
+          rangeState.dragStartX = (e.type === 'touchstart' ? e.touches[0].clientX : e.clientX);
+          rangeState.dragStartRadius = rangeState.radius;
+          btn.style.transition = 'none';
+        };
+
+        const onMove = (e) => {
+          if (!rangeState.isResizing) return;
+          const currentX = (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX);
+          const dx = rangeState.dragStartX - currentX; // Drag left to increase
+          const newRadius = Math.max(2000, Math.min(50000, rangeState.dragStartRadius + dx * 100)); // 2km ~ 50km
+          rangeState.radius = newRadius;
+          updateRangeCircle();
+        };
+
+        const onEnd = () => {
+          if (!rangeState.isResizing) return;
+          rangeState.isResizing = false;
+          btn.style.transition = '';
+          refreshRangeAnalysis();
+        };
+
+        btn.addEventListener('mousedown', onStart);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onEnd);
+        btn.addEventListener('touchstart', onStart, { passive: false });
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('touchend', onEnd);
+      }
+
+      function updateRangeCircle() {
+        if (!state.destLatLng || !state.map) return;
+        if (!rangeState.circle) {
+          rangeState.circle = L.circle(state.destLatLng, {
+            radius: rangeState.radius,
+            color: '#00C8FF',
+            fillColor: '#00C8FF',
+            fillOpacity: 0.1,
+            weight: 2,
+            className: 'range-glow-circle'
+          }).addTo(state.map);
+        } else {
+          rangeState.circle.setLatLng(state.destLatLng);
+          rangeState.circle.setRadius(rangeState.radius);
+        }
+      }
+
+      function refreshRangeAnalysis() {
+        if (!rangeState.active || !state.destLatLng) return;
+
+        updateRangeCircle();
+
+        // Remove old markers
+        rangeState.markers.forEach(m => state.map.removeLayer(m));
+        rangeState.markers = [];
+
+        // Spatial query: find dongs within radius
+        const center = state.destLatLng;
+        const radiusM = rangeState.radius;
+        const origin = state.selectedOrigin;
+        if (!origin) return;
+
+        // Iterate over RATE_DATA for the selected origin
+        const portData = RATE_DATA[origin];
+        if (!portData) return;
+
+        // Note: For performance, we'll only look at centers of polygons in state.allFeatures
+        // which we should store from loadGeoJSON
+        if (!window.allDongsCoords) {
+          // One-time build of center points for dongs
+          window.allDongsCoords = [];
+          if (state.geoLayer) {
+            state.geoLayer.eachLayer(layer => {
+              const center = layer.getBounds().getCenter();
+              const props = layer.feature.properties;
+              window.allDongsCoords.push({
+                latlng: center,
+                sido: layer.sidoKey,
+                sigungu: layer.sigunguName,
+                dong: props.name || props.Name || ''
+              });
+            });
+          }
+        }
+
+        window.allDongsCoords.forEach(d => {
+          const dist = state.map.distance(center, d.latlng);
+          if (dist <= radiusM) {
+            // Get rate
+            const rateInfo = portData[d.sido]?.[d.sigungu]?.[d.dong];
+            if (rateInfo) {
+              const baseRate = rateInfo[0]; // base distance or rate? typically dist[0] in current setup
+              // Let's show the safety freight rate (40FT 위탁) as a representative
+              const { grandTotal } = calcTotal(baseRate, state.selectedSurcharges, 0, 0, '40FT', false, 0, 'port', 'none', 'no', false);
+
+              const html = `<div class="range-label-inner">${(grandTotal / 10000).toFixed(1)}<span style="font-size:0.5rem">만</span></div>`;
+              const marker = L.marker(d.latlng, {
+                icon: L.divIcon({
+                  className: 'range-label',
+                  html: html,
+                  iconSize: [40, 20],
+                  iconAnchor: [20, 10]
+                }),
+                interactive: false
+              }).addTo(state.map);
+              rangeState.markers.push(marker);
+            }
+          }
+        });
       }
 
       // ============================================================
