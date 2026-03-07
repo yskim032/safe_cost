@@ -1,0 +1,4243 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MSC KOREA | 안전운임 계산기 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="rate_data.js"></script>
+  <style>
+    :root {
+      --navy: #003A79;
+      --navy-dark: #002456;
+      --navy-light: #005099;
+      --orange: #FF8200;
+      --orange-light: #FFA040;
+      --orange-dark: #CC6800;
+      --cyan: #00C8FF;
+      --white: #ffffff;
+      --glass-bg: rgba(0, 30, 70, 0.7);
+      --glass-border: rgba(255, 130, 0, 0.2);
+      --glass-blur: blur(16px);
+      --text-primary: #e8f0ff;
+      --text-secondary: #8AAED4;
+      --text-muted: #4a6a9a;
+      --success: #00D4AA;
+      --danger: #FF4757;
+      --panel-w: 400px;
+      --header-h: 56px;
+      --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      font-family: 'Noto Sans KR', 'Inter', sans-serif;
+      background: var(--navy-dark);
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+
+    /* ============ LOADING OVERLAY ============ */
+    #loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #001a3d 0%, #002f6e 50%, #001a3d 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      transition: opacity 0.6s ease;
+    }
+
+    #loading-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-logo {
+      font-size: 2.8rem;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      background: linear-gradient(135deg, var(--orange), var(--orange-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .loading-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      margin-bottom: 40px;
+    }
+
+    .loading-bar-wrap {
+      width: 240px;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .loading-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--orange), var(--cyan));
+      border-radius: 2px;
+      animation: loadBar 1.8s ease-in-out infinite;
+    }
+
+    @keyframes loadBar {
+      0% {
+        width: 0%;
+        margin-left: 0;
+      }
+
+      50% {
+        width: 70%;
+        margin-left: 15%;
+      }
+
+      100% {
+        width: 0%;
+        margin-left: 100%;
+      }
+    }
+
+    .loading-status {
+      margin-top: 16px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+    }
+
+    /* ============ HEADER ============ */
+    #header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--header-h);
+      background: rgba(0, 26, 61, 0.95);
+      backdrop-filter: var(--glass-blur);
+      border-bottom: 1px solid rgba(255, 130, 0, 0.25);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      z-index: 1000;
+      gap: 20px;
+    }
+
+    .header-logo {
+      font-size: 1.4rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      color: var(--orange);
+      flex-shrink: 0;
+    }
+
+    .header-divider {
+      width: 1px;
+      height: 24px;
+      background: rgba(255, 130, 0, 0.3);
+    }
+
+    .header-title {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: 0.05em;
+      flex: 1;
+    }
+
+    .header-badge {
+      font-size: 0.68rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+      color: white;
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Mode Tabs */
+    .mode-tabs {
+      display: flex;
+      gap: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 4px;
+    }
+
+    .mode-tab {
+      padding: 5px 14px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      color: var(--text-muted);
+      background: transparent;
+      transition: var(--transition);
+      letter-spacing: 0.02em;
+      font-family: inherit;
+    }
+
+    .mode-tab.active {
+      background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+      color: white;
+      box-shadow: 0 2px 12px rgba(255, 130, 0, 0.4);
+    }
+
+    /* ============ MAIN LAYOUT ============ */
+    #app {
+      position: fixed;
+      top: var(--header-h);
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+    }
+
+    /* ============ MAP CONTAINER ============ */
+    #map-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #001020;
+    }
+
+    /* Map overlay SVG for bezier curves */
+    #route-svg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 500;
+      overflow: visible;
+    }
+
+    /* ============ SIDE PANEL ============ */
+    #side-panel {
+      width: var(--panel-w);
+      display: flex;
+      flex-direction: column;
+      background: rgba(0, 18, 45, 0.98);
+      border-left: 1px solid rgba(255, 130, 0, 0.2);
+      overflow: hidden;
+      position: relative;
+      z-index: 600;
+    }
+
+    .panel-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 16px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 130, 0, 0.3) transparent;
+    }
+
+    .panel-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .panel-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .panel-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 130, 0, 0.3);
+      border-radius: 2px;
+    }
+
+    @keyframes cardGlowOrange {
+
+      0%,
+      100% {
+        border-color: rgba(255, 130, 0, 0.25);
+        box-shadow: 0 0 6px rgba(255, 130, 0, 0.10);
+      }
+
+      50% {
+        border-color: rgba(255, 160, 0, 0.70);
+        box-shadow: 0 0 16px rgba(255, 130, 0, 0.35);
+      }
+    }
+
+    @keyframes cardGlowCyan {
+
+      0%,
+      100% {
+        border-color: rgba(0, 200, 255, 0.20);
+        box-shadow: 0 0 6px rgba(0, 200, 255, 0.08);
+      }
+
+      50% {
+        border-color: rgba(0, 220, 255, 0.65);
+        box-shadow: 0 0 16px rgba(0, 200, 255, 0.30);
+      }
+    }
+
+    /* Section Card */
+    .card {
+      background: rgba(0, 40, 90, 0.5);
+      border: 1px solid rgba(255, 130, 0, 0.12);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      backdrop-filter: blur(8px);
+    }
+
+    #origin-card {
+      border-color: rgba(255, 130, 0, 0.25);
+      animation: cardGlowOrange 2.5s ease-in-out infinite;
+    }
+
+    #dest-card {
+      border-color: rgba(0, 200, 255, 0.20);
+      animation: cardGlowCyan 2.5s ease-in-out infinite;
+    }
+
+    .card-title-dest {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title-dest::before {
+      content: '';
+      display: block;
+      width: 3px;
+      height: 14px;
+      background: var(--cyan);
+      border-radius: 2px;
+    }
+
+    .card-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--orange);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title::before {
+      content: '';
+      display: block;
+      width: 3px;
+      height: 14px;
+      background: var(--orange);
+      border-radius: 2px;
+    }
+
+    /* ============ FORM ELEMENTS ============ */
+    select,
+    input[type="number"],
+    input[type="text"] {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(0, 30, 70, 0.8);
+      border: 1px solid rgba(255, 130, 0, 0.2);
+      color: var(--text-primary);
+      font-size: 0.83rem;
+      font-family: inherit;
+      outline: none;
+      transition: var(--transition);
+      -webkit-appearance: none;
+    }
+
+    select:focus,
+    input:focus {
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(255, 130, 0, 0.1);
+    }
+
+    select option {
+      background: #001a3d;
+      color: var(--text-primary);
+    }
+
+    label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      display: block;
+      font-weight: 500;
+    }
+
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    /* Toggle buttons (container size) */
+    .toggle-group {
+      display: flex;
+      gap: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 3px;
+    }
+
+    .toggle-btn {
+      flex: 1;
+      padding: 7px 4px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      transition: var(--transition);
+      font-family: inherit;
+      letter-spacing: 0.02em;
+    }
+
+    .toggle-btn.active {
+      background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+      color: white;
+      box-shadow: 0 2px 8px rgba(255, 130, 0, 0.35);
+    }
+
+    /* Radio group */
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .radio-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 130, 0, 0.1);
+      transition: var(--transition);
+      background: rgba(0, 20, 50, 0.4);
+    }
+
+    .radio-item:hover {
+      border-color: rgba(255, 130, 0, 0.3);
+      background: rgba(0, 30, 70, 0.5);
+    }
+
+    .radio-item.active {
+      border-color: var(--orange);
+      background: rgba(255, 130, 0, 0.08);
+    }
+
+    .radio-item input[type="radio"] {
+      display: none;
+    }
+
+    .radio-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--text-muted);
+      flex-shrink: 0;
+      transition: var(--transition);
+      position: relative;
+    }
+
+    .radio-item.active .radio-dot {
+      border-color: var(--orange);
+      background: var(--orange);
+      box-shadow: 0 0 8px rgba(255, 130, 0, 0.5);
+    }
+
+    .radio-item.active .radio-dot::after {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      background: white;
+      border-radius: 50%;
+    }
+
+    .radio-label {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      flex: 1;
+    }
+
+    .radio-item.active .radio-label {
+      color: var(--text-primary);
+    }
+
+    /* Checkbox */
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 3px 8px;
+      border-radius: 6px;
+      transition: var(--transition);
+    }
+
+    .checkbox-item:hover {
+      background: rgba(255, 130, 0, 0.06);
+    }
+
+    .checkbox-item input[type="checkbox"] {
+      display: none;
+    }
+
+    .checkbox-box {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      border: 2px solid rgba(255, 130, 0, 0.3);
+      background: rgba(0, 20, 50, 0.6);
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .checkbox-item.checked .checkbox-box,
+    .checkbox-box.checked {
+      background: var(--orange);
+      border-color: var(--orange);
+    }
+
+    .checkbox-item.checked .checkbox-box::after,
+    .checkbox-box.checked::after {
+      content: '✓';
+      font-size: 0.68rem;
+      color: white;
+      font-weight: 700;
+    }
+
+    .checkbox-label {
+      font-size: 0.77rem;
+      color: var(--text-secondary);
+      flex: 1;
+      white-space: nowrap;
+    }
+
+    .checkbox-rate {
+      font-size: 0.68rem;
+      color: var(--orange);
+      font-weight: 600;
+      background: rgba(255, 130, 0, 0.1);
+      padding: 1px 6px;
+      border-radius: 10px;
+    }
+
+    /* Surcharge sub-category */
+    .surcharge-cat-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 6px;
+      margin-bottom: 2px;
+      padding-left: 4px;
+    }
+
+    .weight-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 2px;
+      padding: 3px 6px;
+      border-radius: 8px;
+      background: rgba(0, 10, 30, 0.4);
+      border: 1px solid rgba(255, 130, 0, 0.08);
+    }
+
+    .weight-row label {
+      margin: 0;
+      flex-shrink: 0;
+      font-size: 0.72rem;
+    }
+
+    .weight-row input {
+      width: 70px;
+      text-align: right;
+      padding: 4px 8px;
+      font-size: 0.78rem;
+    }
+
+    /* ============ PANEL RESIZER ============ */
+    #panel-resizer {
+      height: 7px;
+      flex-shrink: 0;
+      cursor: ns-resize;
+      background: rgba(255, 130, 0, 0.08);
+      border-top: 1px solid rgba(255, 130, 0, 0.18);
+      border-bottom: 1px solid rgba(255, 130, 0, 0.18);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      user-select: none;
+    }
+
+    #panel-resizer:hover,
+    #panel-resizer.dragging {
+      background: rgba(255, 130, 0, 0.22);
+    }
+
+    #panel-resizer::after {
+      content: '';
+      width: 36px;
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255, 130, 0, 0.5);
+    }
+
+    /* ============ RESULTS ============ */
+    #result-panel {
+      border-top: none;
+      padding: 14px 16px;
+      background: rgba(0, 10, 30, 0.6);
+      flex-shrink: 0;
+      overflow-y: auto;
+      min-height: 58px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 130, 0, 0.3) transparent;
+    }
+
+    #result-panel::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    #result-panel::-webkit-scrollbar-thumb {
+      background: rgba(255, 130, 0, 0.3);
+      border-radius: 2px;
+    }
+
+    .result-total-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .result-total-amount {
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--orange), var(--orange-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1;
+      margin-bottom: 2px;
+    }
+
+    .result-vat {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 8px;
+    }
+
+    .result-table tr {
+      border-bottom: 1px solid rgba(255, 130, 0, 0.06);
+    }
+
+    .result-table td {
+      padding: 4px 2px;
+      font-size: 0.75rem;
+    }
+
+    .result-table td:first-child {
+      color: var(--text-muted);
+    }
+
+    .result-table td:last-child {
+      text-align: right;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .result-table .highlight td:last-child {
+      color: var(--orange);
+    }
+
+    .surcharge-list {
+      margin-bottom: 10px;
+    }
+
+    .surcharge-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.72rem;
+      padding: 3px 0;
+      border-bottom: 1px dashed rgba(255, 130, 0, 0.08);
+    }
+
+    .surcharge-item-name {
+      color: var(--text-muted);
+    }
+
+    .surcharge-item-amount {
+      color: var(--cyan);
+      font-weight: 600;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 9px 14px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: var(--transition);
+      letter-spacing: 0.03em;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--orange), var(--orange-dark));
+      color: white;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 4px 16px rgba(255, 130, 0, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 130, 0, 0.1);
+      color: var(--orange);
+      border: 1px solid rgba(255, 130, 0, 0.25);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 130, 0, 0.18);
+    }
+
+    /* ============ MAP MODE SPECIFIC ============ */
+    .map-hint {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(0, 18, 45, 0.9);
+      border: 1px solid rgba(255, 130, 0, 0.2);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      z-index: 500;
+      pointer-events: none;
+      backdrop-filter: blur(8px);
+      transition: var(--transition);
+    }
+
+    .map-hint strong {
+      color: var(--orange);
+    }
+
+    /* ============ MANUAL MODE ============ */
+    #manual-mode {
+      display: none;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    #manual-mode.active {
+      display: flex;
+    }
+
+    #map-mode {
+      display: flex;
+      flex: 1;
+      position: relative;
+    }
+
+    #map-mode.hidden {
+      display: none;
+    }
+
+    /* ============ PORT MARKERS (Leaflet custom) ============ */
+    .port-marker-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      position: relative;
+    }
+
+    .port-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--orange);
+      box-shadow: 0 0 8px rgba(255, 130, 0, 0.8);
+      position: relative;
+      z-index: 2;
+      transition: var(--transition);
+    }
+
+    .port-pulse {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 130, 0, 0.4);
+      animation: pulse 2s ease-out infinite;
+    }
+
+    .port-pulse2 {
+      position: absolute;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 130, 0, 0.2);
+      animation: pulse 2s ease-out 0.7s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.5);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(1.5);
+        opacity: 0;
+      }
+    }
+
+    .port-marker-wrap.selected .port-dot {
+      background: #ffff40;
+      box-shadow: 0 0 16px rgba(255, 255, 64, 0.9);
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Leaflet popup styling */
+    .leaflet-popup-content-wrapper {
+      background: rgba(0, 18, 45, 0.95) !important;
+      border: 1px solid rgba(255, 130, 0, 0.4) !important;
+      border-radius: 10px !important;
+      color: var(--text-primary) !important;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .leaflet-popup-tip {
+      background: rgba(0, 18, 45, 0.95) !important;
+    }
+
+    .leaflet-popup-content {
+      margin: 10px 14px !important;
+    }
+
+    .leaflet-popup-close-button {
+      color: var(--text-muted) !important;
+    }
+
+    /* Province label */
+    .province-label {
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    /* Custom Leaflet tooltip */
+    @keyframes glowCyan {
+
+      0%,
+      100% {
+        box-shadow: 0 0 6px 1px rgba(0, 220, 255, 0.5), 0 0 12px 2px rgba(0, 200, 255, 0.3);
+        border-color: rgba(0, 200, 255, 0.6);
+      }
+
+      50% {
+        box-shadow: 0 0 14px 3px rgba(0, 220, 255, 0.95), 0 0 28px 6px rgba(0, 200, 255, 0.6);
+        border-color: rgba(0, 220, 255, 1.0);
+      }
+    }
+
+    @keyframes glowOrange {
+
+      0%,
+      100% {
+        box-shadow: 0 0 6px 1px rgba(255, 150, 0, 0.5), 0 0 12px 2px rgba(255, 130, 0, 0.3);
+        border-color: rgba(255, 130, 0, 0.6);
+      }
+
+      50% {
+        box-shadow: 0 0 14px 3px rgba(255, 160, 0, 0.95), 0 0 28px 6px rgba(255, 130, 0, 0.6);
+        border-color: rgba(255, 160, 0, 1.0);
+      }
+    }
+
+    @keyframes pinGlowCyan {
+
+      0%,
+      100% {
+        filter: drop-shadow(0 0 5px rgba(0, 200, 255, 0.7)) drop-shadow(0 0 10px rgba(0, 200, 255, 0.4));
+      }
+
+      50% {
+        filter: drop-shadow(0 0 12px rgba(0, 220, 255, 1.0)) drop-shadow(0 0 24px rgba(0, 200, 255, 0.8));
+      }
+    }
+
+    @keyframes pinGlowOrange {
+
+      0%,
+      100% {
+        filter: drop-shadow(0 0 5px rgba(255, 130, 0, 0.7)) drop-shadow(0 0 10px rgba(255, 130, 0, 0.4));
+      }
+
+      50% {
+        filter: drop-shadow(0 0 12px rgba(255, 160, 0, 1.0)) drop-shadow(0 0 24px rgba(255, 130, 0, 0.8));
+      }
+    }
+
+    .dest-pin-icon {
+      animation: pinGlowCyan 2s ease-in-out infinite;
+      cursor: grab;
+    }
+
+    .origin-pin-icon {
+      animation: pinGlowOrange 2s ease-in-out infinite;
+      cursor: grab;
+    }
+
+    .leaflet-tooltip.msc-tooltip {
+      background: rgba(0, 10, 30, 0.92) !important;
+      border: 1.5px solid rgba(0, 200, 255, 0.7) !important;
+      color: #00E8FF !important;
+      font-family: 'Noto Sans KR', sans-serif !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      border-radius: 6px !important;
+      padding: 4px 10px !important;
+      white-space: nowrap !important;
+      animation: glowCyan 2s ease-in-out infinite !important;
+    }
+
+    .leaflet-tooltip.msc-tooltip::before {
+      display: none !important;
+    }
+
+    .leaflet-tooltip.msc-tooltip-origin {
+      background: rgba(0, 10, 30, 0.92) !important;
+      border: 1.5px solid rgba(255, 130, 0, 0.7) !important;
+      color: #FF8200 !important;
+      font-family: 'Noto Sans KR', sans-serif !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      border-radius: 6px !important;
+      padding: 4px 10px !important;
+      white-space: nowrap !important;
+      animation: glowOrange 2s ease-in-out infinite !important;
+    }
+
+    .leaflet-tooltip.msc-tooltip-origin::before {
+      display: none !important;
+    }
+
+    /* Sigungu marker */
+    .sigungu-marker {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(0, 200, 255, 0.7);
+      border: 1px solid rgba(0, 200, 255, 0.5);
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: 0 0 6px rgba(0, 200, 255, 0.5);
+    }
+
+    .sigungu-marker:hover {
+      background: var(--cyan);
+      transform: scale(1.5);
+      box-shadow: 0 0 12px rgba(0, 200, 255, 0.8);
+    }
+
+    .sigungu-marker.selected {
+      background: var(--orange);
+      border-color: var(--orange);
+      box-shadow: 0 0 12px rgba(255, 130, 0, 0.8);
+      transform: scale(1.4);
+    }
+
+    /* Dong list in panel */
+    .dong-list {
+      max-height: 200px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 130, 0, 0.3) transparent;
+    }
+
+    .dong-item {
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      transition: var(--transition);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .dong-item:hover {
+      background: rgba(255, 130, 0, 0.1);
+      color: var(--text-primary);
+    }
+
+    .dong-item.selected {
+      background: rgba(255, 130, 0, 0.15);
+      color: var(--orange);
+    }
+
+    .dong-item-dist {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+
+    /* Selection breadcrumb */
+    .selection-path {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      padding: 4px 0;
+      margin-bottom: 0;
+      line-height: 1.5;
+    }
+
+    .selection-path span {
+      color: var(--orange);
+      font-weight: 600;
+    }
+
+    /* Distance badge */
+    .dist-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(0, 200, 255, 0.1);
+      border: 1px solid rgba(0, 200, 255, 0.2);
+      color: var(--cyan);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+
+    /* ============ TOAST ============ */
+    #toast-container {
+      position: fixed;
+      top: 70px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 9999;
+      pointer-events: none;
+    }
+
+    .toast {
+      padding: 10px 16px;
+      border-radius: 10px;
+      background: rgba(0, 18, 45, 0.97);
+      border: 1px solid rgba(255, 130, 0, 0.3);
+      color: var(--text-primary);
+      font-size: 0.78rem;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      animation: toastIn 0.3s ease, toastOut 0.4s ease 2.6s forwards;
+      pointer-events: auto;
+    }
+
+    .toast.success {
+      border-color: rgba(0, 212, 170, 0.4);
+    }
+
+    .toast.error {
+      border-color: rgba(255, 71, 87, 0.4);
+      color: var(--danger);
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateX(30px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes toastOut {
+      from {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0;
+        transform: translateX(30px);
+      }
+    }
+
+    /* ============ ROUTE ANIMATION SVG ============ */
+    .route-gradient-path {
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      animation: dashFlow 2s linear infinite;
+    }
+
+    .route-bg-path {
+      fill: none;
+      stroke: rgba(255, 130, 0, 0.12);
+      stroke-width: 4;
+      stroke-linecap: round;
+    }
+
+    @keyframes dashFlow {
+      0% {
+        stroke-dashoffset: 200;
+      }
+
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    /* Endpoint circles */
+    .endpoint-circle-outer {
+      fill: none;
+      stroke-width: 1.5;
+      animation: endpointPulse 1.5s ease-out infinite;
+    }
+
+    .endpoint-circle-inner {
+      opacity: 0.9;
+    }
+
+    @keyframes endpointPulse {
+      0% {
+        r: 5;
+        opacity: 0.8;
+      }
+
+      100% {
+        r: 14;
+        opacity: 0;
+      }
+    }
+
+    /* Moving particle */
+    .route-particle {
+      animation: particleMove 2s linear infinite;
+    }
+
+    /* ============ ONEWAY SECTION ============ */
+    .oneway-section {
+      background: rgba(0, 200, 255, 0.05);
+      border: 1px solid rgba(0, 200, 255, 0.15);
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 8px;
+    }
+
+    /* ============ PRINT STYLES ============ */
+    @media print {
+
+      #header,
+      #map-container,
+      .mode-tabs,
+      .btn,
+      #loading-overlay {
+        display: none !important;
+      }
+
+      #side-panel {
+        width: 100%;
+        border: none;
+      }
+
+      body {
+        background: white;
+        color: black;
+      }
+    }
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 768px) {
+      :root {
+        --panel-w: 100vw;
+      }
+
+      #map-mode {
+        flex-direction: column;
+      }
+
+      #map-container {
+        height: 50vh;
+      }
+
+      #side-panel {
+        height: 50vh;
+      }
+    }
+
+    /* Animate sections appearing */
+    .card {
+      animation: fadeSlideIn 0.3s ease;
+    }
+
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Waiting fee grid */
+    .fee-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    /* Oneway badge */
+    .oneway-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.68rem;
+      color: var(--cyan);
+      font-weight: 700;
+      background: rgba(0, 200, 255, 0.1);
+      border: 1px solid rgba(0, 200, 255, 0.25);
+      border-radius: 12px;
+      padding: 2px 8px;
+      margin-left: 6px;
+    }
+
+    /* Collapsible surcharge section */
+    .collapse-toggle {
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .collapse-icon {
+      font-size: 0.8rem;
+      transition: transform 0.25s ease;
+      color: var(--text-muted);
+    }
+
+    .collapsed .collapse-icon {
+      transform: rotate(-90deg);
+    }
+
+    .collapsible-content {
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+
+    .collapsible-content.collapsed {
+      max-height: 0 !important;
+    }
+
+    /* Highlighted rate type */
+    .active-rate-display {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(255, 130, 0, 0.08);
+      border: 1px solid rgba(255, 130, 0, 0.2);
+      margin-bottom: 8px;
+    }
+
+    .active-rate-label {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+    }
+
+    .active-rate-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--orange);
+    }
+
+    /* Number formatting */
+    .num {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay">
+    <div class="loading-logo">MSC KOREA</div>
+    <div class="loading-subtitle">안전운임 계산 시스템 2026</div>
+    <div class="loading-bar-wrap">
+      <div class="loading-bar"></div>
+    </div>
+    <div class="loading-status" id="loading-status">지도 데이터 로딩 중...</div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Header -->
+  <div id="header">
+    <div class="header-logo" style="font-size: 1.7rem; font-weight: bold;">MSC KOREA</div>
+    <div class="header-divider"></div>
+    <div class="header-title" style="font-size: 1.7rem; font-weight: bold;">2026 안전운임 계산기</div>
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tab-map" onclick="switchMode('map')">지도 기반</button>
+      <button class="mode-tab" id="tab-manual" onclick="switchMode('manual')">직접 입력</button>
+    </div>
+  </div>
+
+  <!-- App Container -->
+  <div id="app">
+    <!-- MAP MODE -->
+    <div id="map-mode">
+      <div id="map-container">
+        <div id="map"></div>
+        <svg id="route-svg" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="routeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" style="stop-color:#FF8200;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#00C8FF;stop-opacity:1" />
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+              <feMerge>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <g id="route-group"></g>
+        </svg>
+        <div class="map-hint" id="map-hint">
+          🚢 <strong>출발지 선택 모드</strong>: 항만 마커를 클릭하여 출발지를 선택하세요.
+        </div>
+      </div>
+      <!-- Side Panel for Map Mode -->
+      <div id="side-panel">
+        <div class="panel-scroll">
+          <!-- Mode Toggle -->
+          <div class="card" id="mode-toggle-card" style="padding:10px 16px">
+            <div style="display:flex;gap:8px">
+              <button id="mode-btn-origin" onclick="setMapMode('origin')"
+                style="flex:1;padding:8px 0;font-size:0.8rem;font-weight:700;border-radius:8px;border:2px solid var(--orange);background:var(--orange);color:#fff;cursor:pointer;transition:all 0.2s;font-family:inherit">
+                출발지 선택
+              </button>
+              <button id="mode-btn-dest" onclick="setMapMode('dest')"
+                style="flex:1;padding:8px 0;font-size:0.8rem;font-weight:700;border-radius:8px;border:2px solid rgba(0,200,255,0.4);background:transparent;color:var(--cyan);cursor:pointer;transition:all 0.2s;font-family:inherit">
+                도착지 선택
+              </button>
+            </div>
+          </div>
+
+          <!-- Origin Selection -->
+          <div class="card" id="origin-card">
+            <div class="card-title">출발지 (항만)</div>
+            <div id="origin-display" style="font-size:0.82rem;padding:4px 0">
+              <span style="color:var(--text-muted);font-size:0.8rem">지도에서 해당 항만을 선택하세요.</span>
+            </div>
+            <div style="font-size:0.82rem;color:var(--text-muted);padding:6px 0">
+              지도에서 항만을 선택후 지역을 선택하세요.
+            </div>
+          </div>
+
+          <!-- Destination Selection (Map Mode) -->
+          <div class="card" id="dest-card">
+            <div class="card-title-dest">도착지 (행정동)</div>
+            <div id="selection-breadcrumb" class="selection-path" style="display:none"></div>
+            <div id="dong-list-container">
+              <div style="font-size:0.82rem;color:var(--text-muted);padding:6px 0">
+                지도에서 지역을 클릭하여 선택하세요.
+              </div>
+            </div>
+          </div>
+
+          <!-- Container Config -->
+          <div class="card" id="container-card">
+            <div class="card-title">컨테이너 설정</div>
+            <div class="form-group">
+              <label>컨테이너 크기</label>
+              <div class="toggle-group">
+                <button class="toggle-btn" id="btn-20ft" onclick="setContainerSize('20FT')">20FT</button>
+                <button class="toggle-btn active" id="btn-40ft" onclick="setContainerSize('40FT')">40FT</button>
+                <button class="toggle-btn" id="btn-45ft" onclick="setContainerSize('45FT')">45FT</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>운임 유형</label>
+              <div class="radio-group" id="rate-type-group-map">
+                <label class="radio-item active" onclick="setRateType('위탁', 'map')">
+                  <input type="radio" name="rateTypeMap" value="위탁" checked>
+                  <div class="radio-dot"></div>
+                  <span class="radio-label">안전위탁운임 <span
+                      style="color:var(--text-muted);font-size:0.68rem">(화주→운수사)</span></span>
+                </label>
+                <label class="radio-item" onclick="setRateType('사업자간', 'map')">
+                  <input type="radio" name="rateTypeMap" value="사업자간">
+                  <div class="radio-dot"></div>
+                  <span class="radio-label">운수사업자간 운임</span>
+                </label>
+                <label class="radio-item" onclick="setRateType('운송', 'map')">
+                  <input type="radio" name="rateTypeMap" value="운송">
+                  <div class="radio-dot"></div>
+                  <span class="radio-label">안전운송운임 <span
+                      style="color:var(--text-muted);font-size:0.68rem">(운수사→기사)</span></span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group" id="oneway-toggle-wrap" style="display:none">
+              <label class="checkbox-item" onclick="toggleOneway(event)">
+                <input type="checkbox" id="oneway-cb">
+                <div class="checkbox-box" id="oneway-cb-box"></div>
+                <span class="checkbox-label">편도 운임 적용 <span class="oneway-badge">의왕ICD 경유</span></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Surcharges -->
+          <div class="card">
+            <div class="card-title collapse-toggle" onclick="toggleCollapse(this)">
+              <span>할증 설정</span>
+              <span class="collapse-icon">▼</span>
+            </div>
+            <div class="collapsible-content" style="max-height:1000px">
+              <div class="surcharge-cat-label">컨테이너 유형</div>
+              <div class="checkbox-group" id="surcharge-container"></div>
+              <div class="surcharge-cat-label">화물 종류</div>
+              <div class="checkbox-group" id="surcharge-cargo"></div>
+              <div class="surcharge-cat-label">운송 구간</div>
+              <div class="checkbox-group" id="surcharge-route"></div>
+              <div class="surcharge-cat-label">시간대</div>
+              <div class="checkbox-group" id="surcharge-time"></div>
+
+              <div class="surcharge-cat-label">중량 할증 (과중량)</div>
+              <div class="weight-row">
+                <label>40FT 화물중량 (톤)</label>
+                <input type="number" id="weight-40" min="0" max="40" step="0.5" placeholder="0" oninput="recalculate()">
+                <span style="font-size:0.72rem;color:var(--text-muted)">t</span>
+              </div>
+              <div class="weight-row">
+                <label>20FT 화물중량 (톤)</label>
+                <input type="number" id="weight-20" min="0" max="30" step="0.5" placeholder="0" oninput="recalculate()">
+                <span style="font-size:0.72rem;color:var(--text-muted)">t</span>
+              </div>
+
+              <div class="surcharge-cat-label">복화운송</div>
+              <label class="checkbox-item" onclick="toggleReturnLoad(event)">
+                <input type="checkbox" id="return-load-cb">
+                <div class="checkbox-box" id="return-load-cb-box"></div>
+                <span class="checkbox-label">복화운송 (왕복운임의 100%)</span>
+              </label>
+
+              <div class="surcharge-cat-label">대기료</div>
+              <div class="fee-grid">
+                <div class="form-group">
+                  <label>대기 장소</label>
+                  <select id="waiting-location" onchange="recalculate()">
+                    <option value="port">항만·ICD</option>
+                    <option value="shipper">화주 문전</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>무료시간 초과 (30분 단위)</label>
+                  <input type="number" id="waiting-units" min="0" max="24" step="1" placeholder="0"
+                    oninput="recalculate()">
+                </div>
+              </div>
+
+              <div class="surcharge-cat-label">배차취소료</div>
+              <div class="fee-grid">
+                <div class="form-group">
+                  <label>취소 시점</label>
+                  <select id="cancel-timing" onchange="recalculate()">
+                    <option value="none">없음</option>
+                    <option value="before2h">출발 2시간 전</option>
+                    <option value="before30m">출발 30분 전</option>
+                    <option value="after">출발 후</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>컨테이너 수령 여부</label>
+                  <select id="cancel-received" onchange="recalculate()">
+                    <option value="no">미수령</option>
+                    <option value="yes">수령 완료</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="surcharge-cat-label">기타</div>
+              <label class="checkbox-item" id="scanner-cb-wrap" onclick="toggleScanner(event)">
+                <input type="checkbox" id="scanner-cb">
+                <div class="checkbox-box" id="scanner-cb-box"></div>
+                <span class="checkbox-label">검색기 검사 <span class="checkbox-rate">₩100,000</span></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resize Handle -->
+        <div id="panel-resizer" title="드래그하여 결과 영역 크기 조절"></div>
+
+        <!-- Results Panel -->
+        <div id="result-panel">
+          <div class="result-total-label">계산 결과 (VAT 별도)</div>
+          <div class="result-total-amount num" id="result-total">—</div>
+          <div id="result-detail" style="display:none">
+            <div class="active-rate-display">
+              <span class="active-rate-label" id="result-rate-type-label">운임 유형</span>
+              <span class="active-rate-value num" id="result-base-amount">—</span>
+            </div>
+            <div class="surcharge-list" id="result-surcharge-list"></div>
+            <table class="result-table" id="result-all-rates">
+              <thead>
+                <tr>
+                  <td colspan="2"
+                    style="color:var(--text-muted);padding-bottom:4px;font-size:0.68rem;letter-spacing:0.05em">전체 운임 비교
+                  </td>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <span class="dist-badge" id="result-dist">— km</span>
+              <span style="font-size:0.68rem;color:var(--text-muted)" id="result-route-info"></span>
+            </div>
+          </div>
+          <div class="result-actions">
+            <button class="btn btn-secondary" onclick="copyResult()">복사</button>
+            <button class="btn btn-primary" onclick="printResult()">인쇄</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="manual-mode">
+      <div class="panel-scroll" style="width:100%;max-width:1300px;margin:0 auto;padding:20px">
+
+        <div style="display:grid;grid-template-columns:0.85fr 1.35fr 0.9fr;gap:20px">
+          <!-- Left Column -->
+          <div>
+            <div class="card">
+              <div class="card-title">출발지 (항만)</div>
+              <div class="form-group">
+                <select id="m-origin" onchange="onManualOriginChange()">
+                  <option value="">항만 선택...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">도착지 (행정동)</div>
+              <div class="form-group">
+                <label>시/도</label>
+                <select id="m-sido" onchange="onManualSidoChange()">
+                  <option value="">시/도 선택...</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>시/군/구</label>
+                <select id="m-sigungu" onchange="onManualSigunguChange()">
+                  <option value="">시/군/구 선택...</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>행정동</label>
+                <select id="m-dong" onchange="onManualDongChange()">
+                  <option value="">행정동 선택...</option>
+                </select>
+              </div>
+              <div id="m-oneway-wrap" style="display:none">
+                <label class="checkbox-item" onclick="toggleOnewayManual(event)">
+                  <input type="checkbox" id="m-oneway-cb">
+                  <div class="checkbox-box" id="m-oneway-cb-box"></div>
+                  <span class="checkbox-label">편도 운임 적용 <span class="oneway-badge">의왕ICD 경유</span></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">컨테이너 설정</div>
+              <div class="form-group">
+                <label>컨테이너 크기</label>
+                <div class="toggle-group">
+                  <button class="toggle-btn" id="m-btn-20ft" onclick="setContainerSizeManual('20FT')">20FT</button>
+                  <button class="toggle-btn active" id="m-btn-40ft"
+                    onclick="setContainerSizeManual('40FT')">40FT</button>
+                  <button class="toggle-btn" id="m-btn-45ft" onclick="setContainerSizeManual('45FT')">45FT</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>운임 유형</label>
+                <div class="radio-group" id="rate-type-group-manual">
+                  <label class="radio-item active" onclick="setRateType('위탁', 'manual')">
+                    <input type="radio" name="rateTypeManual" value="위탁" checked>
+                    <div class="radio-dot"></div>
+                    <span class="radio-label">안전위탁운임</span>
+                  </label>
+                  <label class="radio-item" onclick="setRateType('사업자간', 'manual')">
+                    <input type="radio" name="rateTypeManual" value="사업자간">
+                    <div class="radio-dot"></div>
+                    <span class="radio-label">운수사업자간 운임</span>
+                  </label>
+                  <label class="radio-item" onclick="setRateType('운송', 'manual')">
+                    <input type="radio" name="rateTypeManual" value="운송">
+                    <div class="radio-dot"></div>
+                    <span class="radio-label">안전운송운임</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Surcharges -->
+          <div>
+            <div class="card">
+              <div class="card-title collapse-toggle" onclick="toggleCollapse(this)">
+                <span>할증 설정</span><span class="collapse-icon">▼</span>
+              </div>
+              <div class="collapsible-content"
+                style="max-height:1000px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div>
+                  <div class="surcharge-cat-label">컨테이너 유형</div>
+                  <div class="checkbox-group" id="m-surcharge-container"></div>
+                  <div class="surcharge-cat-label">화물 종류</div>
+                  <div class="checkbox-group" id="m-surcharge-cargo"></div>
+                  <div class="surcharge-cat-label">운송 구간</div>
+                  <div class="checkbox-group" id="m-surcharge-route"></div>
+                  <div class="surcharge-cat-label">시간대</div>
+                  <div class="checkbox-group" id="m-surcharge-time"></div>
+                </div>
+
+                <div>
+                  <div class="surcharge-cat-label">중량 할증</div>
+                  <div class="weight-row">
+                    <label>40FT 중량(t)</label>
+                    <input type="number" id="m-weight-40" min="0" max="40" step="0.5" placeholder="0"
+                      oninput="recalculateManual()">
+                    <span style="font-size:0.72rem;color:var(--text-muted)">t</span>
+                  </div>
+                  <div class="weight-row">
+                    <label>20FT 중량(t)</label>
+                    <input type="number" id="m-weight-20" min="0" max="30" step="0.5" placeholder="0"
+                      oninput="recalculateManual()">
+                    <span style="font-size:0.72rem;color:var(--text-muted)">t</span>
+                  </div>
+
+                  <div class="surcharge-cat-label">복화운송</div>
+                  <label class="checkbox-item" onclick="toggleReturnLoadManual(event)">
+                    <input type="checkbox" id="m-return-load-cb">
+                    <div class="checkbox-box" id="m-return-load-cb-box"></div>
+                    <span class="checkbox-label">복화운송 (왕복운임의 100%)</span>
+                  </label>
+
+                  <div class="surcharge-cat-label">대기료</div>
+                  <div class="fee-grid">
+                    <div class="form-group">
+                      <label>대기 장소</label>
+                      <select id="m-waiting-location" onchange="recalculateManual()">
+                        <option value="port">항만·ICD</option>
+                        <option value="shipper">화주 문전</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>초과 (30분 단위)</label>
+                      <input type="number" id="m-waiting-units" min="0" step="1" placeholder="0"
+                        oninput="recalculateManual()">
+                    </div>
+                  </div>
+
+                  <div class="surcharge-cat-label">배차취소료</div>
+                  <div class="fee-grid">
+                    <div class="form-group">
+                      <label>취소 시점</label>
+                      <select id="m-cancel-timing" onchange="recalculateManual()">
+                        <option value="none">없음</option>
+                        <option value="before2h">출발 2시간 전</option>
+                        <option value="before30m">출발 30분 전</option>
+                        <option value="after">출발 후</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>컨테이너 수령</label>
+                      <select id="m-cancel-received" onchange="recalculateManual()">
+                        <option value="no">미수령</option>
+                        <option value="yes">수령 완료</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="surcharge-cat-label">기타</div>
+                  <label class="checkbox-item" onclick="toggleScannerManual(event)">
+                    <input type="checkbox" id="m-scanner-cb">
+                    <div class="checkbox-box" id="m-scanner-cb-box"></div>
+                    <span class="checkbox-label">검색기 검사 <span class="checkbox-rate">₩100,000</span></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Manual Results -->
+          <div>
+            <div class="card" id="manual-result-card"
+              style="margin-top:0;height:100%;display:flex;flex-direction:column;">
+              <div class="card-title">계산 결과</div>
+              <div style="text-align:center;padding:12px 0">
+                <div class="result-total-label" style="text-align:left">합계 금액 (VAT 별도)</div>
+                <div class="result-total-amount num" id="m-result-total" style="font-size:2.4rem">—</div>
+                <div class="result-vat">※ 부가가치세(10%) 별도</div>
+              </div>
+              <div id="m-result-detail" style="display:none">
+                <div class="active-rate-display">
+                  <span class="active-rate-label" id="m-result-rate-type-label">운임 유형</span>
+                  <span class="active-rate-value num" id="m-result-base-amount">—</span>
+                </div>
+                <div class="surcharge-list" id="m-result-surcharge-list"></div>
+                <table class="result-table" id="m-result-all-rates">
+                  <thead>
+                    <tr>
+                      <td colspan="2"
+                        style="color:var(--text-muted);padding-bottom:4px;font-size:0.68rem;letter-spacing:0.05em">전체 운임
+                        비교
+                      </td>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+                  <span class="dist-badge" id="m-result-dist">— km</span>
+                  <span style="font-size:0.68rem;color:var(--text-muted)" id="m-result-route-info"></span>
+                </div>
+              </div>
+              <div class="result-actions" style="margin-top:16px">
+                <button class="btn btn-secondary" onclick="copyResultManual()">📋 복사</button>
+                <button class="btn btn-primary" onclick="printResult()">🖨 인쇄</button>
+              </div>
+            </div>
+          </div>
+          <!-- End of 3rd column -->
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ============================================================
+      // CONSTANTS & DATA
+      // ============================================================
+
+      const PORT_COORDS = {
+        '부산신항': [35.08333, 128.81667],
+        '부산북항': [35.11083, 129.05861],
+        '인천신항': [37.34800, 126.59600],
+        '인천항': [37.45150, 126.61670],
+        '인천국제여객터미널': [37.4800, 126.6200],
+        '광양항': [34.9147, 127.6963],
+        '평택항': [36.99305, 126.80300],
+        '울산신항': [35.43200, 129.36500],
+        '울산항': [35.51100, 129.38280],
+        '포항항': [36.01629, 129.40750],
+        '군산항': [35.97400, 126.58440],
+        '마산항': [35.19800, 128.57600],
+        '대산항': [37.00900, 126.38260],
+        '의왕ICD': [37.34460, 126.94820]
+      };
+
+      const PROVINCE_CENTROIDS = {
+        '서울특별시': [37.5665, 126.9780],
+        '부산광역시': [35.1796, 129.0756],
+        '대구광역시': [35.8714, 128.6014],
+        '인천광역시': [37.4563, 126.7052],
+        '광주광역시': [35.1595, 126.8526],
+        '대전광역시': [36.3504, 127.3845],
+        '울산광역시': [35.5384, 129.3114],
+        '세종특별자치시': [36.4800, 127.2890],
+        '경기도': [37.4138, 127.5183],
+        '강원특별자치도': [37.8228, 128.1555],
+        '충청북도': [36.8000, 127.7000],
+        '충청남도': [36.5184, 126.8000],
+        '전북특별자치도': [35.7175, 127.1530],
+        '전라남도': [34.8679, 126.9910],
+        '경상북도': [36.4919, 128.8889],
+        '경상남도': [35.4606, 128.2132],
+        '제주특별자치도': [33.4890, 126.4983]
+      };
+
+      const SURCHARGES = [
+        { id: 'reefer', name: '냉동·냉장 컨테이너', nameEn: 'Reefer', rate: 0.30, category: 'container' },
+        { id: 'tank', name: '탱크 컨테이너', nameEn: 'Tank', rate: 0.30, category: 'container' },
+        { id: 'flexibag_liquid', name: '플렉시백(액체)', nameEn: 'Flexibag Liquid', rate: 0.20, category: 'container' },
+        { id: 'flexibag_powder', name: '플렉시백(분말)', nameEn: 'Flexibag Powder', rate: 0.10, category: 'container' },
+        { id: 'dump', name: '덤프 컨테이너', nameEn: 'Dump', rate: 0.25, category: 'container' },
+        { id: 'ot_fr', name: '오픈탑/플랫랙(OT/FR)', nameEn: 'OT/FR', rate: 0.10, category: 'container' },
+        { id: 'hazmat_1', name: '위험물·유독물·유해화학물질', nameEn: 'Hazmat', rate: 0.30, category: 'cargo' },
+        { id: 'explosive', name: '화약류', nameEn: 'Explosives', rate: 1.00, category: 'cargo' },
+        { id: 'radioactive', name: '방사성물질', nameEn: 'Radioactive', rate: 2.00, category: 'cargo' },
+        { id: 'rough_road', name: '험로·오지', nameEn: 'Rough/Remote', rate: 0.20, category: 'route' },
+        { id: 'restricted', name: '통행제한지역', nameEn: 'Restricted Zone', rate: 0.30, category: 'route' },
+        { id: 'holiday', name: '공휴일', nameEn: 'Holiday', rate: 0.20, category: 'time' },
+        { id: 'night', name: '심야(22:00-06:00)', nameEn: 'Night', rate: 0.20, category: 'time' },
+      ];
+
+      // Origins that have a pre-included surcharge
+      const PORT_SURCHARGE_INCLUDED = {
+        '인천신항': 0.20,
+        '인천항': 0.20,
+        '인천국제여객터미널': 0.20,
+        '평택항': 0.18,
+      };
+
+      // One-way eligible routes
+      const ONEWAY_ELIGIBLE_ORIGINS = ['부산신항', '부산북항', '광양항'];
+      const ONEWAY_DEST = '의왕ICD';
+
+      // Rate type indices in RATE_DATA array: [dist, ft40_위탁, ft40_사업자간, ft40_운송, ft20_위탁, ft20_사업자간, ft20_운송]
+      const RATE_IDX = {
+        '40FT': { '위탁': 1, '사업자간': 2, '운송': 3 },
+        '20FT': { '위탁': 4, '사업자간': 5, '운송': 6 },
+        '45FT': { '위탁': 1, '사업자간': 2, '운송': 3 }, // × 1.125 of 40FT
+      };
+
+      // ONEWAY_DATA: [total_dist, load_dist, empty_dist, ft40_위탁, ft40_사업자간, ft40_운송, ft20_위탁, ft20_사업자간, ft20_운송]
+      const ONEWAY_RATE_IDX = {
+        '40FT': { '위탁': 3, '사업자간': 4, '운송': 5 },
+        '20FT': { '위탁': 6, '사업자간': 7, '운송': 8 },
+        '45FT': { '위탁': 3, '사업자간': 4, '운송': 5 },
+      };
+
+      // Waiting fee (₩ per 30min unit)
+      const WAITING_FEE = { port: 20000, shipper: 20000 };
+
+      // Cancellation fee rates (of base fare)
+      const CANCEL_RATE = {
+        none: 0,
+        before2h: 0.30,
+        before30m: 0.50,
+        after: 1.00,
+      };
+      const CANCEL_RATE_RECEIVED = {
+        none: 0,
+        before2h: 0.50,
+        before30m: 0.80,
+        after: 1.00,
+      };
+
+      // ============================================================
+      // STATE
+      // ============================================================
+      const state = {
+        mode: 'map',
+        // Map mode
+        selectedOrigin: null,
+        selectedSido: null,
+        selectedSigungu: null,
+        selectedDong: null,
+        // Shared
+        containerSize: '40FT',
+        rateType: '위탁',
+        oneway: false,
+        selectedSurcharges: new Set(),
+        weight40: 0,
+        weight20: 0,
+        returnLoad: false,
+        waitingLocation: 'port',
+        waitingUnits: 0,
+        cancelTiming: 'none',
+        cancelReceived: 'no',
+        scanner: false,
+        // Manual mode
+        m_origin: null,
+        m_sido: null,
+        m_sigungu: null,
+        m_dong: null,
+        m_containerSize: '40FT',
+        m_rateType: '위탁',
+        m_oneway: false,
+        m_selectedSurcharges: new Set(),
+        m_weight40: 0,
+        m_weight20: 0,
+        m_returnLoad: false,
+        m_waitingLocation: 'port',
+        m_waitingUnits: 0,
+        m_cancelTiming: 'none',
+        m_cancelReceived: 'no',
+        m_scanner: false,
+        // Map objects
+        map: null,
+        geoJsonLayer: null,
+        municipalGeo: null,       // raw municipality GeoJSON (전국 시군구)
+        municipalLayer: null,     // active filtered L.geoJSON layer
+        municipalLabels: [],      // label markers on municipal layer
+        portMarkers: {},
+        sigunguMarkers: [],
+        selectedPortMarker: null,
+        originLatLng: null,
+        destLatLng: null,
+        destMarker: null,
+        originMarker: null,
+        currentProvince: null,
+        mapSelectMode: 'origin', // 'origin' | 'dest'
+        originAreaLayer: null,   // municipality polygon layer for origin port area
+        originAreaLabels: [],    // label markers on origin area layer
+        submunicipalGeo: null,       // raw submunicipality (읍면동) GeoJSON
+        submunicipalLayer: null,     // active 읍면동 polygon layer
+        submunicipalLabels: [],      // label markers on 읍면동 layer
+        sigunguCodeMap: {},          // sigungu name → 5-digit KOSTAT code
+        sigunguCodeToName: {},       // 5-digit KOSTAT code → sigungu name
+        destDrillDown: null,         // { sidoKey, sigunguName, sigunguCode, sidoCode, features }
+        originDrillDown: null,       // same for origin
+        selectedOriginDongLayer: null,  // persisted origin dong polygon
+        selectedDestDongLayer: null,    // persisted dest dong polygon
+      };
+
+      // ============================================================
+      // UTILITIES
+      // ============================================================
+      function fmt(n) {
+        if (n === null || n === undefined || isNaN(n)) return '—';
+        return '₩' + Math.round(n).toLocaleString('ko-KR');
+      }
+      function fmtNum(n) {
+        if (n === null || n === undefined || isNaN(n)) return '—';
+        return Math.round(n).toLocaleString('ko-KR');
+      }
+
+      function showToast(msg, type = 'info') {
+        const c = document.getElementById('toast-container');
+        const t = document.createElement('div');
+        t.className = 'toast ' + type;
+        t.textContent = msg;
+        c.appendChild(t);
+        setTimeout(() => t.remove(), 3200);
+      }
+
+      function toggleCollapse(el) {
+        const content = el.nextElementSibling;
+        if (!content) return;
+        const isCollapsed = content.classList.contains('collapsed');
+        if (isCollapsed) {
+          content.classList.remove('collapsed');
+          content.style.maxHeight = '1000px';
+          el.classList.remove('collapsed');
+        } else {
+          content.classList.add('collapsed');
+          el.classList.add('collapsed');
+        }
+      }
+
+      // ============================================================
+      // MODE SWITCHING
+      // ============================================================
+      function switchMode(mode) {
+        state.mode = mode;
+        document.getElementById('tab-map').classList.toggle('active', mode === 'map');
+        document.getElementById('tab-manual').classList.toggle('active', mode === 'manual');
+        document.getElementById('map-mode').classList.toggle('hidden', mode !== 'map');
+        document.getElementById('manual-mode').classList.toggle('active', mode === 'manual');
+        if (mode === 'map' && state.map) {
+          setTimeout(() => state.map.invalidateSize(), 50);
+        }
+      }
+
+      // ============================================================
+      // SURCHARGE UI INITIALIZATION
+      // ============================================================
+      function buildSurchargeCheckboxes(prefix) {
+        const cats = ['container', 'cargo', 'route', 'time'];
+        cats.forEach(cat => {
+          const el = document.getElementById(`${prefix}surcharge-${cat}`);
+          if (!el) return;
+          el.innerHTML = '';
+          SURCHARGES.filter(s => s.category === cat).forEach(s => {
+            const rateStr = s.rate >= 1 ? `+${(s.rate * 100).toFixed(0)}%` : `+${(s.rate * 100).toFixed(0)}%`;
+            const item = document.createElement('label');
+            item.className = 'checkbox-item';
+            item.dataset.id = s.id;
+            item.innerHTML = `
+        <input type="checkbox" value="${s.id}">
+        <div class="checkbox-box"></div>
+        <span class="checkbox-label">${s.name}</span>
+        <span class="checkbox-rate">${rateStr}</span>`;
+            item.addEventListener('click', function (e) {
+              e.preventDefault();
+              const isMapMode = prefix === '';
+              const surchargeSet = isMapMode ? state.selectedSurcharges : state.m_selectedSurcharges;
+              if (surchargeSet.has(s.id)) {
+                surchargeSet.delete(s.id);
+                item.classList.remove('checked');
+              } else {
+                surchargeSet.add(s.id);
+                item.classList.add('checked');
+              }
+              if (isMapMode) recalculate(); else recalculateManual();
+            });
+            el.appendChild(item);
+          });
+        });
+      }
+
+      // ============================================================
+      // CONTAINER SIZE & RATE TYPE
+      // ============================================================
+      function setContainerSize(size) {
+        state.containerSize = size;
+        ['20FT', '40FT', '45FT'].forEach(s => {
+          document.getElementById(`btn-${s.toLowerCase()}`).classList.toggle('active', s === size);
+        });
+        recalculate();
+      }
+
+      function setContainerSizeManual(size) {
+        state.m_containerSize = size;
+        ['20FT', '40FT', '45FT'].forEach(s => {
+          document.getElementById(`m-btn-${s.toLowerCase()}`).classList.toggle('active', s === size);
+        });
+        recalculateManual();
+      }
+
+      function setRateType(type, modeStr) {
+        if (modeStr === 'map') {
+          state.rateType = type;
+          document.querySelectorAll('#rate-type-group-map .radio-item').forEach(el => {
+            el.classList.toggle('active', el.querySelector('input').value === type);
+          });
+          recalculate();
+        } else {
+          state.m_rateType = type;
+          document.querySelectorAll('#rate-type-group-manual .radio-item').forEach(el => {
+            el.classList.toggle('active', el.querySelector('input').value === type);
+          });
+          recalculateManual();
+        }
+      }
+
+      // ============================================================
+      // ONEWAY TOGGLE
+      // ============================================================
+      function toggleOneway(e) {
+        if (e) e.preventDefault();
+        state.oneway = !state.oneway;
+        const box = document.getElementById('oneway-cb-box');
+        box.classList.toggle('checked', state.oneway);
+        recalculate();
+      }
+
+      function toggleOnewayManual(e) {
+        if (e) e.preventDefault();
+        state.m_oneway = !state.m_oneway;
+        const box = document.getElementById('m-oneway-cb-box');
+        box.classList.toggle('checked', state.m_oneway);
+        recalculateManual();
+      }
+
+      // ============================================================
+      // RETURN LOAD, SCANNER, ETC
+      // ============================================================
+      function toggleReturnLoad(e) {
+        if (e) e.preventDefault();
+        state.returnLoad = !state.returnLoad;
+        document.getElementById('return-load-cb-box').classList.toggle('checked', state.returnLoad);
+        recalculate();
+      }
+      function toggleReturnLoadManual(e) {
+        if (e) e.preventDefault();
+        state.m_returnLoad = !state.m_returnLoad;
+        document.getElementById('m-return-load-cb-box').classList.toggle('checked', state.m_returnLoad);
+        recalculateManual();
+      }
+      function toggleScanner(e) {
+        if (e) e.preventDefault();
+        state.scanner = !state.scanner;
+        document.getElementById('scanner-cb-box').classList.toggle('checked', state.scanner);
+        recalculate();
+      }
+      function toggleScannerManual(e) {
+        if (e) e.preventDefault();
+        state.m_scanner = !state.m_scanner;
+        document.getElementById('m-scanner-cb-box').classList.toggle('checked', state.m_scanner);
+        recalculateManual();
+      }
+
+      // ============================================================
+      // RATE CALCULATION ENGINE
+      // ============================================================
+      function getBaseRate(origin, sido, sigungu, dong, containerSize, rateType, oneway) {
+        if (!origin || !sido || !sigungu || !dong) return null;
+
+        // Try oneway first if applicable
+        if (oneway && (typeof ONEWAY_DATA !== 'undefined') && ONEWAY_ELIGIBLE_ORIGINS.includes(origin)) {
+          const onewayKey = `${origin}↔의왕ICD`;
+          if (ONEWAY_DATA[onewayKey] && ONEWAY_DATA[onewayKey][sido] &&
+            ONEWAY_DATA[onewayKey][sido][sigungu] &&
+            ONEWAY_DATA[onewayKey][sido][sigungu][dong]) {
+            const d = ONEWAY_DATA[onewayKey][sido][sigungu][dong];
+            let baseSize = containerSize === '45FT' ? '40FT' : containerSize;
+            const idx = ONEWAY_RATE_IDX[baseSize][rateType];
+            let rate = d[idx];
+            if (containerSize === '45FT') rate = Math.round(rate * 1.125);
+            return { rate, dist: d[0], loadDist: d[1], emptyDist: d[2], isOneway: true };
+          }
+        }
+
+        if (!RATE_DATA[origin] || !RATE_DATA[origin][sido] ||
+          !RATE_DATA[origin][sido][sigungu] || !RATE_DATA[origin][sido][sigungu][dong]) {
+          return null;
+        }
+
+        const d = RATE_DATA[origin][sido][sigungu][dong];
+        let baseSize = containerSize === '45FT' ? '40FT' : containerSize;
+        const idx = RATE_IDX[baseSize][rateType];
+        let rate = d[idx];
+        if (containerSize === '45FT') rate = Math.round(rate * 1.125);
+        return { rate, dist: d[0], isOneway: false };
+      }
+
+      function getAllRates(origin, sido, sigungu, dong, containerSize, oneway) {
+        const types = ['위탁', '사업자간', '운송'];
+        const result = {};
+        types.forEach(t => {
+          const r = getBaseRate(origin, sido, sigungu, dong, containerSize, t, oneway);
+          result[t] = r ? r.rate : null;
+        });
+        return result;
+      }
+
+      function calcSurcharges(baseRate, surchargeSet, weight40, weight20, containerSize, returnLoad,
+        waitingUnits, waitingLocation, cancelTiming, cancelReceived, scanner) {
+        const items = [];
+        let total = 0;
+
+        // Port included surcharge note (informational only - already in rate)
+        // NOT added to total since already included
+
+        // Main surcharges - stacking rule
+        const activeSurcharges = SURCHARGES.filter(s => surchargeSet.has(s.id));
+        if (activeSurcharges.length > 0) {
+          // Sort descending by rate
+          activeSurcharges.sort((a, b) => b.rate - a.rate);
+          // Apply: 1st at 100%, 2nd+ at 50% each (no limit)
+          const maxApply = activeSurcharges.length;
+          for (let i = 0; i < maxApply; i++) {
+            const s = activeSurcharges[i];
+            const multiplier = i === 0 ? 1.0 : 0.5;
+            const effectiveRate = s.rate * multiplier;
+            const amount = Math.round(baseRate * effectiveRate);
+            total += amount;
+            items.push({
+              name: s.name + (i > 0 ? ' (50% 적용)' : ''),
+              rate: effectiveRate,
+              amount,
+            });
+          }
+        }
+
+        // Heavy cargo surcharge: 40FT >23t: +10%/ton, 20FT >20t: +10%/ton
+        let weightSurcharge = 0;
+        let weightDesc = '';
+        if (containerSize === '40FT' || containerSize === '45FT') {
+          const w = parseFloat(weight40) || 0;
+          if (w > 23) {
+            const excess = w - 23;
+            weightSurcharge = Math.round(baseRate * 0.10 * excess);
+            weightDesc = `과중량(${w}t, 초과${excess.toFixed(1)}t)`;
+          }
+        } else if (containerSize === '20FT') {
+          const w = parseFloat(weight20) || 0;
+          if (w > 20) {
+            const excess = w - 20;
+            weightSurcharge = Math.round(baseRate * 0.10 * excess);
+            weightDesc = `과중량(${w}t, 초과${excess.toFixed(1)}t)`;
+          }
+        }
+        if (weightSurcharge > 0) {
+          total += weightSurcharge;
+          items.push({ name: weightDesc, amount: weightSurcharge });
+        }
+
+        // Return load (복화운송): +100% of round-trip rate
+        if (returnLoad) {
+          const rl = baseRate;
+          total += rl;
+          items.push({ name: '복화운송', amount: rl });
+        }
+
+        // Waiting fee
+        const wu = parseInt(waitingUnits) || 0;
+        if (wu > 0) {
+          const wf = wu * WAITING_FEE[waitingLocation];
+          total += wf;
+          items.push({ name: `대기료 (${wu}×30분, ${waitingLocation === 'port' ? '항만' : '화주문전'})`, amount: wf });
+        }
+
+        // Cancellation fee
+        if (cancelTiming !== 'none') {
+          const received = cancelReceived === 'yes';
+          const cancelRate = received ? CANCEL_RATE_RECEIVED[cancelTiming] : CANCEL_RATE[cancelTiming];
+          const cf = Math.round(baseRate * cancelRate);
+          if (cf > 0) {
+            total += cf;
+            items.push({ name: `배차취소료 (${cancelTiming === 'before2h' ? '2시간전' : cancelTiming === 'before30m' ? '30분전' : '출발후'})`, amount: cf });
+          }
+        }
+
+        // Scanner inspection
+        if (scanner) {
+          total += 100000;
+          items.push({ name: '검색기 검사', amount: 100000 });
+        }
+
+        return { items, total };
+      }
+
+      function calcTotal(baseRate, surchargeSet, weight40, weight20, containerSize, returnLoad,
+        waitingUnits, waitingLocation, cancelTiming, cancelReceived, scanner) {
+        const { items, total } = calcSurcharges(baseRate, surchargeSet, weight40, weight20, containerSize,
+          returnLoad, waitingUnits, waitingLocation, cancelTiming, cancelReceived, scanner);
+        return { items, surchargeTotal: total, grandTotal: baseRate + total };
+      }
+
+      // ============================================================
+      // DISPLAY RESULTS
+      // ============================================================
+      function displayResults(prefix, origin, sido, sigungu, dong, containerSize, rateType, oneway,
+        surchargeSet, weight40, weight20, returnLoad, waitingUnits, waitingLocation,
+        cancelTiming, cancelReceived, scanner) {
+
+        const p = prefix ? prefix : '';
+        const totalEl = document.getElementById(p + 'result-total');
+        const detailEl = document.getElementById(p + 'result-detail');
+        const baseAmountEl = document.getElementById(p + 'result-base-amount');
+        const rateTypeLabelEl = document.getElementById(p + 'result-rate-type-label');
+        const surchargeListEl = document.getElementById(p + 'result-surcharge-list');
+        const allRatesEl = document.getElementById(p + 'result-all-rates');
+        const distEl = document.getElementById(p + 'result-dist');
+        const routeInfoEl = document.getElementById(p + 'result-route-info');
+
+        const rateResult = getBaseRate(origin, sido, sigungu, dong, containerSize, rateType, oneway);
+
+        if (!rateResult) {
+          totalEl.textContent = '—';
+          if (detailEl) detailEl.style.display = 'none';
+          return;
+        }
+
+        const baseRate = rateResult.rate;
+        const { items, surchargeTotal, grandTotal } = calcTotal(
+          baseRate, surchargeSet, weight40, weight20, containerSize, returnLoad,
+          waitingUnits, waitingLocation, cancelTiming, cancelReceived, scanner
+        );
+
+        totalEl.textContent = fmt(grandTotal);
+        if (detailEl) detailEl.style.display = 'block';
+
+        const rateTypeNames = { '위탁': '안전위탁운임', '사업자간': '운수사업자간 운임', '운송': '안전운송운임' };
+        const sizeLabel = containerSize;
+        if (rateTypeLabelEl) rateTypeLabelEl.textContent = `${sizeLabel} · ${rateTypeNames[rateType]}`;
+        if (baseAmountEl) baseAmountEl.textContent = fmt(baseRate);
+
+        // Surcharge breakdown
+        if (surchargeListEl) {
+          surchargeListEl.innerHTML = '';
+          if (items.length === 0) {
+            surchargeListEl.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);padding:4px 0">적용된 할증 없음</div>';
+          } else {
+            items.forEach(item => {
+              const row = document.createElement('div');
+              row.className = 'surcharge-item';
+              row.innerHTML = `<span class="surcharge-item-name">${item.name}</span>
+          <span class="surcharge-item-amount">+ ${fmtNum(item.amount)}</span>`;
+              surchargeListEl.appendChild(row);
+            });
+            if (surchargeTotal > 0) {
+              const totalRow = document.createElement('div');
+              totalRow.className = 'surcharge-item';
+              totalRow.style.borderTop = '1px solid rgba(255,130,0,0.2)';
+              totalRow.style.paddingTop = '6px';
+              totalRow.innerHTML = `<span class="surcharge-item-name" style="font-weight:600;color:var(--text-secondary)">할증 합계</span>
+          <span class="surcharge-item-amount" style="color:var(--orange)">+ ${fmtNum(surchargeTotal)}</span>`;
+              surchargeListEl.appendChild(totalRow);
+            }
+          }
+        }
+
+        // All rates table
+        if (allRatesEl) {
+          const tbody = allRatesEl.querySelector('tbody');
+          if (tbody) {
+            tbody.innerHTML = '';
+            const allRates = getAllRates(origin, sido, sigungu, dong, containerSize, oneway);
+            const rateNames = [['위탁', '안전위탁운임'], ['사업자간', '운수사업자간 운임'], ['운송', '안전운송운임']];
+            rateNames.forEach(([rt, rtName]) => {
+              const tr = document.createElement('tr');
+              if (rt === rateType) tr.className = 'highlight';
+              tr.innerHTML = `<td>${rtName}</td><td>${allRates[rt] !== null ? fmt(allRates[rt]) : '—'}</td>`;
+              tbody.appendChild(tr);
+            });
+          }
+        }
+
+        // Distance info
+        if (distEl) distEl.textContent = `${rateResult.dist} km`;
+        if (routeInfoEl) {
+          let info = `${origin} → ${dong}`;
+          if (rateResult.isOneway) {
+            info += ` (편도: 적재 ${rateResult.loadDist}km + 공차 ${rateResult.emptyDist}km)`;
+          }
+          // Port surcharge note
+          if (PORT_SURCHARGE_INCLUDED[origin]) {
+            info += ` ※ ${(PORT_SURCHARGE_INCLUDED[origin] * 100).toFixed(0)}% 할증 기포함`;
+          }
+          routeInfoEl.textContent = info;
+        }
+
+        // Auto-fit result panel height to show all content (map mode only)
+        if (!prefix) {
+          requestAnimationFrame(() => autoFitResultPanel());
+        }
+      }
+
+      // ============================================================
+      // RECALCULATE (Map Mode)
+      // ============================================================
+      function recalculate() {
+        const { selectedOrigin, selectedSido, selectedSigungu, selectedDong,
+          containerSize, rateType, oneway, selectedSurcharges,
+          weight40, weight20, returnLoad, waitingLocation, waitingUnits,
+          cancelTiming, cancelReceived, scanner } = state;
+
+        const w40 = document.getElementById('weight-40')?.value || 0;
+        const w20 = document.getElementById('weight-20')?.value || 0;
+        const wUnits = document.getElementById('waiting-units')?.value || 0;
+        const wLoc = document.getElementById('waiting-location')?.value || 'port';
+        const cTiming = document.getElementById('cancel-timing')?.value || 'none';
+        const cReceived = document.getElementById('cancel-received')?.value || 'no';
+
+        displayResults('', selectedOrigin, selectedSido, selectedSigungu, selectedDong,
+          containerSize, rateType, oneway, selectedSurcharges,
+          w40, w20, returnLoad, wUnits, wLoc, cTiming, cReceived, scanner);
+      }
+
+      // ============================================================
+      // RECALCULATE (Manual Mode)
+      // ============================================================
+      function recalculateManual() {
+        const w40 = document.getElementById('m-weight-40')?.value || 0;
+        const w20 = document.getElementById('m-weight-20')?.value || 0;
+        const wUnits = document.getElementById('m-waiting-units')?.value || 0;
+        const wLoc = document.getElementById('m-waiting-location')?.value || 'port';
+        const cTiming = document.getElementById('m-cancel-timing')?.value || 'none';
+        const cReceived = document.getElementById('m-cancel-received')?.value || 'no';
+
+        displayResults('m-', state.m_origin, state.m_sido, state.m_sigungu, state.m_dong,
+          state.m_containerSize, state.m_rateType, state.m_oneway, state.m_selectedSurcharges,
+          w40, w20, state.m_returnLoad, wUnits, wLoc, cTiming, cReceived, state.m_scanner);
+      }
+
+      // ============================================================
+      // MANUAL MODE DROPDOWNS
+      // ============================================================
+      function populateManualOrigin() {
+        const sel = document.getElementById('m-origin');
+        const origins = Object.keys(RATE_DATA);
+        origins.forEach((o, i) => {
+          const opt = document.createElement('option');
+          opt.value = o;
+          opt.textContent = `${i}. ${o}`;
+          sel.appendChild(opt);
+        });
+      }
+
+      function onManualOriginChange() {
+        const origin = document.getElementById('m-origin').value;
+        state.m_origin = origin || null;
+        state.m_sido = null; state.m_sigungu = null; state.m_dong = null;
+        state.m_oneway = false;
+
+        // Check oneway eligibility
+        const onewayWrap = document.getElementById('m-oneway-wrap');
+        if (onewayWrap) {
+          onewayWrap.style.display = ONEWAY_ELIGIBLE_ORIGINS.includes(origin) ? 'block' : 'none';
+        }
+        document.getElementById('m-oneway-cb-box').classList.remove('checked');
+
+        // Populate 시도
+        const sidoSel = document.getElementById('m-sido');
+        sidoSel.innerHTML = '<option value="">시/도 선택...</option>';
+        document.getElementById('m-sigungu').innerHTML = '<option value="">시/군/구 선택...</option>';
+        document.getElementById('m-dong').innerHTML = '<option value="">행정동 선택...</option>';
+
+        if (!origin || !RATE_DATA[origin]) return;
+
+        const sidos = Object.keys(RATE_DATA[origin]).sort();
+        sidos.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s; opt.textContent = s;
+          sidoSel.appendChild(opt);
+        });
+        recalculateManual();
+      }
+
+      function onManualSidoChange() {
+        const origin = state.m_origin;
+        const sido = document.getElementById('m-sido').value;
+        state.m_sido = sido || null;
+        state.m_sigungu = null; state.m_dong = null;
+
+        const sigunguSel = document.getElementById('m-sigungu');
+        sigunguSel.innerHTML = '<option value="">시/군/구 선택...</option>';
+        document.getElementById('m-dong').innerHTML = '<option value="">행정동 선택...</option>';
+
+        if (!origin || !sido || !RATE_DATA[origin]?.[sido]) return;
+
+        const sigungus = Object.keys(RATE_DATA[origin][sido]).sort();
+        sigungus.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s; opt.textContent = s;
+          sigunguSel.appendChild(opt);
+        });
+        recalculateManual();
+      }
+
+      function onManualSigunguChange() {
+        const origin = state.m_origin;
+        const sido = state.m_sido;
+        const sigungu = document.getElementById('m-sigungu').value;
+        state.m_sigungu = sigungu || null;
+        state.m_dong = null;
+
+        const dongSel = document.getElementById('m-dong');
+        dongSel.innerHTML = '<option value="">행정동 선택...</option>';
+
+        if (!origin || !sido || !sigungu || !RATE_DATA[origin]?.[sido]?.[sigungu]) return;
+
+        const dongs = Object.keys(RATE_DATA[origin][sido][sigungu]).sort();
+        dongs.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d; opt.textContent = d;
+          dongSel.appendChild(opt);
+        });
+        recalculateManual();
+      }
+
+      function onManualDongChange() {
+        const dong = document.getElementById('m-dong').value;
+        state.m_dong = dong || null;
+        recalculateManual();
+      }
+
+      // ============================================================
+      // MAP INITIALIZATION
+      // ============================================================
+      function initMap() {
+        const map = L.map('map', {
+          center: [36.5, 127.5],
+          zoom: 7,
+          zoomControl: true,
+          attributionControl: false,
+        });
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          attribution: '© CartoDB',
+          subdomains: 'abcd',
+          maxZoom: 19,
+        }).addTo(map);
+
+        // Attribution small
+        L.control.attribution({ position: 'bottomleft', prefix: '© CartoDB · MSC KOREA' }).addTo(map);
+
+        state.map = map;
+
+        // Add port markers
+        addPortMarkers(map);
+
+        // Panel resizer
+        initPanelResizer();
+
+        // Update SVG overlay on map events
+        map.on('move', updateRouteSVG);
+        map.on('zoom', updateRouteSVG);
+        map.on('resize', updateRouteSVG);
+        // Sync SVG size with map container
+        syncSVGSize();
+        map.on('resize', syncSVGSize);
+
+        return map;
+      }
+
+      // ============================================================
+      // PANEL RESIZER (drag handle between scroll area and result panel)
+      // ============================================================
+      function initPanelResizer() {
+        const resizer = document.getElementById('panel-resizer');
+        const resultPanel = document.getElementById('result-panel');
+        const sidePanel = document.getElementById('side-panel');
+        if (!resizer || !resultPanel || !sidePanel) return;
+
+        let startY, startH;
+
+        function calcNewH(dy) {
+          const panelH = sidePanel.offsetHeight;
+          const target = startH - dy;
+          const maxH = panelH - 8;
+          return Math.max(58, Math.min(maxH, target));
+        }
+
+        resizer.addEventListener('mousedown', e => {
+          e.preventDefault();
+          startY = e.clientY;
+          startH = resultPanel.offsetHeight;
+          resizer.classList.add('dragging');
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp);
+        });
+
+        // Touch support
+        resizer.addEventListener('touchstart', e => {
+          startY = e.touches[0].clientY;
+          startH = resultPanel.offsetHeight;
+          resizer.classList.add('dragging');
+          document.addEventListener('touchmove', onTouchMove, { passive: false });
+          document.addEventListener('touchend', onUp);
+        });
+
+        function onMove(e) {
+          resultPanel.style.height = calcNewH(e.clientY - startY) + 'px';
+        }
+        function onTouchMove(e) {
+          e.preventDefault();
+          resultPanel.style.height = calcNewH(e.touches[0].clientY - startY) + 'px';
+        }
+        function onUp() {
+          resizer.classList.remove('dragging');
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          document.removeEventListener('touchmove', onTouchMove);
+          document.removeEventListener('touchend', onUp);
+        }
+      }
+
+      // Auto-fit result panel to show all content after calculation
+      function autoFitResultPanel() {
+        const resultPanel = document.getElementById('result-panel');
+        const sidePanel = document.getElementById('side-panel');
+        if (!resultPanel || !sidePanel) return;
+        // Measure natural content height
+        const prev = resultPanel.style.height;
+        resultPanel.style.height = 'auto';
+        const contentH = resultPanel.scrollHeight;
+        resultPanel.style.height = prev;
+        // Apply: show all content up to panel limit
+        const maxH = sidePanel.offsetHeight - 8;
+        resultPanel.style.height = Math.min(contentH, maxH) + 'px';
+      }
+
+      function syncSVGSize() {
+        const mapEl = document.getElementById('map');
+        const svg = document.getElementById('route-svg');
+        const rect = mapEl.getBoundingClientRect();
+        svg.setAttribute('width', rect.width);
+        svg.setAttribute('height', rect.height);
+      }
+
+      // ============================================================
+      // PORT MARKERS
+      // ============================================================
+      function createPortIcon(name, selected) {
+        const div = document.createElement('div');
+        div.className = 'port-marker-wrap' + (selected ? ' selected' : '');
+        div.innerHTML = `
+    <div class="port-pulse"></div>
+    <div class="port-pulse2"></div>
+    <div class="port-dot"></div>`;
+        return L.divIcon({
+          className: '',
+          html: div.outerHTML,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+        });
+      }
+
+      function addPortMarkers(map) {
+        Object.entries(PORT_COORDS).forEach(([name, coords]) => {
+          const marker = L.marker(coords, {
+            icon: createPortIcon(name, false),
+            title: name,
+            zIndexOffset: 1000,
+          }).addTo(map);
+
+          marker.bindTooltip(name, {
+            permanent: false, direction: 'top',
+            className: 'leaflet-tooltip',
+            offset: [0, -20],
+          });
+
+          marker.on('click', () => selectOrigin(name, coords, marker));
+          state.portMarkers[name] = marker;
+        });
+      }
+
+      function setMapMode(mode) {
+        state.mapSelectMode = mode;
+        const btnOrigin = document.getElementById('mode-btn-origin');
+        const btnDest = document.getElementById('mode-btn-dest');
+        const hint = document.getElementById('map-hint');
+
+        if (mode === 'origin') {
+          btnOrigin.style.background = 'var(--orange)';
+          btnOrigin.style.color = '#fff';
+          btnOrigin.style.borderColor = 'var(--orange)';
+          btnDest.style.background = 'transparent';
+          btnDest.style.color = 'var(--cyan)';
+          btnDest.style.borderColor = 'rgba(0,200,255,0.4)';
+          if (hint) hint.innerHTML = '🚢 <strong>항만 마커</strong>를 클릭하여 출발지를 선택하세요.';
+        } else {
+          btnDest.style.background = 'var(--cyan)';
+          btnDest.style.color = '#001a3d';
+          btnDest.style.borderColor = 'var(--cyan)';
+          btnOrigin.style.background = 'transparent';
+          btnOrigin.style.color = 'var(--orange)';
+          btnOrigin.style.borderColor = 'rgba(255,130,0,0.4)';
+          if (!state.selectedOrigin) {
+            showToast('먼저 출발지(항만)를 선택하세요.', 'error');
+            setMapMode('origin');
+            return;
+          }
+          if (hint) hint.innerHTML = '📍 지도에서 <strong>시·도</strong>를 클릭하여 도착지를 선택하세요.';
+          // Restore province layer hover so user can click provinces
+          if (state.geoJsonLayer) {
+            state.geoJsonLayer.eachLayer(l => {
+              l.setStyle({ fillColor: '#003A79', fillOpacity: 0.18, color: '#FF8200', weight: 1.0, opacity: 0.6 });
+            });
+          }
+        }
+      }
+
+      // Port → administrative location mapping
+      const PORT_LOCATION = {
+        '부산신항': { sido: '부산광역시', sigungu: '강서구' },
+        '부산북항': { sido: '부산광역시', sigungu: '중구' },
+        '인천신항': { sido: '인천광역시', sigungu: '연수구' },
+        '인천항': { sido: '인천광역시', sigungu: '중구' },
+        '인천국제여객터미널': { sido: '인천광역시', sigungu: '중구' },
+        '광양항': { sido: '전라남도', sigungu: '광양시' },
+        '평택항': { sido: '경기도', sigungu: '평택시' },
+        '울산신항': { sido: '울산광역시', sigungu: '울주군' },
+        '울산항': { sido: '울산광역시', sigungu: '남구' },
+        '포항항': { sido: '경상북도', sigungu: '포항시북구' },
+        '군산항': { sido: '전북특별자치도', sigungu: '군산시' },
+        '마산항': { sido: '경상남도', sigungu: '창원시마산합포구' },
+        '대산항': { sido: '충청남도', sigungu: '서산시' },
+        '의왕ICD': { sido: '경기도', sigungu: '의왕시' },
+      };
+
+      function clearOriginAreaLayer() {
+        if (state.originAreaLayer && state.map) {
+          state.map.removeLayer(state.originAreaLayer);
+          state.originAreaLayer = null;
+        }
+        state.originAreaLabels.forEach(m => { if (state.map) state.map.removeLayer(m); });
+        state.originAreaLabels = [];
+      }
+
+      function clearSubmunicipalLayer() {
+        if (state.submunicipalLayer && state.map) {
+          state.map.removeLayer(state.submunicipalLayer);
+          state.submunicipalLayer = null;
+        }
+        state.submunicipalLabels.forEach(m => { if (state.map) state.map.removeLayer(m); });
+        state.submunicipalLabels = [];
+      }
+
+      const SUBMUNICIPAL_URL = 'https://raw.githubusercontent.com/southkorea/southkorea-maps/master/kostat/2012/json/submunicipalities-geo-simple.json';
+
+      async function drillDownToEupmyeondong(sigunguCode, sigunguName, sidoKey, map, mode) {
+        clearSubmunicipalLayer();
+        // Hide the parent (sigungu-level) layer now — dong polygons take over
+        if (mode === 'origin') clearOriginAreaLayer();
+        else { clearMunicipalLayer(); clearSigunguMarkers(); }
+        if (!map) return;
+
+        // Load submunicipality GeoJSON lazily
+        if (!state.submunicipalGeo) {
+          showToast('읍면동 데이터 로딩 중... (잠시만 기다려 주세요)', 'info');
+          try {
+            const resp = await fetch(SUBMUNICIPAL_URL);
+            if (resp.ok) {
+              state.submunicipalGeo = await resp.json();
+              console.log('[GeoJSON] submunicipalGeo loaded:', state.submunicipalGeo.features.length, 'features');
+            } else {
+              showToast('읍면동 데이터 로드 실패 (' + resp.status + ')', 'error');
+              return;
+            }
+          } catch (e) {
+            console.error('submunicipalGeo fetch error:', e);
+            showToast('읍면동 데이터 로드 실패', 'error');
+            return;
+          }
+        }
+
+        const filtered = {
+          type: 'FeatureCollection',
+          features: state.submunicipalGeo.features.filter(f =>
+            String(f.properties.code || '').startsWith(String(sigunguCode))
+          )
+        };
+        console.log(`drillDown: ${sigunguName}(${sigunguCode}) → ${filtered.features.length} 읍면동`);
+
+        if (filtered.features.length === 0) {
+          showToast(`${sigunguName} 읍면동 데이터 없음`, 'error');
+          return;
+        }
+
+        // Store drill-down context for drag-based polygon lookup
+        const drillInfo = { sidoKey, sigunguName, sigunguCode: String(sigunguCode), sidoCode: String(sigunguCode).substring(0, 2), features: filtered.features };
+        if (mode === 'origin') state.originDrillDown = drillInfo;
+        else state.destDrillDown = drillInfo;
+
+        const isOrigin = mode === 'origin';
+        const baseColor = isOrigin ? 'rgba(255,130,0,0.15)' : 'rgba(0,200,255,0.15)';
+        const lineColor = isOrigin ? '#FF8200' : '#00C8FF';
+        const hoverColor = isOrigin ? 'rgba(255,130,0,0.45)' : 'rgba(0,200,255,0.45)';
+        const labelColor = isOrigin ? '#FFB040' : '#00E8FF';
+
+        state.submunicipalLayer = L.geoJSON(filtered, {
+          style: () => ({ fillColor: baseColor, fillOpacity: 1, color: lineColor, weight: 1.2, opacity: 0.85 }),
+          onEachFeature: (feature, lyr) => {
+            const dongName = feature.properties.name || feature.properties.Name || '';
+
+            lyr.on({
+              mouseover: e => {
+                e.target.setStyle({ fillColor: hoverColor, weight: 2.0 });
+                e.target.bindTooltip(
+                  `<b style="font-family:'Noto Sans KR',sans-serif">${dongName}</b>`,
+                  { sticky: true, className: isOrigin ? 'msc-tooltip-origin' : 'msc-tooltip' }
+                ).openTooltip(e.latlng);
+              },
+              mouseout: e => {
+                if (!e.target._selected)
+                  e.target.setStyle({ fillColor: baseColor, weight: 1.2 });
+                e.target.closeTooltip();
+              },
+              click: e => {
+                L.DomEvent.stopPropagation(e);
+
+                if (isOrigin) {
+                  // ── 출발지 동 선택 ──
+                  state.originLatLng = e.latlng;
+
+                  // Pin the selected dong polygon, then clear everything else
+                  pinDongPolygon(feature, 'origin', dongName, sigunguName);
+                  clearAllSelectionLayers();
+                  setOriginMarker(e.latlng, sidoKey, `${sigunguName} ${dongName}`);
+
+                  updateRouteSVG();
+                  showToast(`출발지 확정: ${sigunguName} ${dongName} → 이제 도착지를 선택하세요`, 'success');
+                  setMapMode('dest');
+
+                } else {
+                  // ── 도착지 동 선택 ──
+                  const origin = state.selectedOrigin;
+                  let finalDong = dongName;
+                  if (origin && RATE_DATA[origin]?.[sidoKey]?.[sigunguName]) {
+                    const dongKeys = Object.keys(RATE_DATA[origin][sidoKey][sigunguName]);
+                    const matched = matchDongName(dongName, dongKeys);
+                    if (matched) finalDong = matched;
+                    else console.warn(`matchDongName: no match for "${dongName}" in`, dongKeys.slice(0, 5));
+                  }
+
+                  state.selectedSigungu = sigunguName;
+                  state.selectedDong = finalDong;
+
+                  // Pin the selected dong polygon (with label), then clear everything else
+                  pinDongPolygon(feature, 'dest', finalDong, sigunguName);
+                  clearAllSelectionLayers();
+
+                  setDestination(e.latlng, sidoKey, `${sigunguName} ${finalDong}`);
+                  updateBreadcrumb(sidoKey, sigunguName, finalDong);
+                  recalculate();
+                  showToast(`도착지 확정: ${sigunguName} ${finalDong}`, 'success');
+                }
+              }
+            });
+
+            // Label
+            try {
+              const center = lyr.getBounds().getCenter();
+              const lbl = L.marker(center, {
+                icon: L.divIcon({
+                  className: '',
+                  html: `<div style="cursor:pointer;background:rgba(0,8,28,0.80);color:${labelColor};
+              font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap;
+              border:1px solid ${lineColor};pointer-events:none;
+              font-family:'Noto Sans KR',sans-serif;">${dongName}</div>`,
+                  iconSize: [80, 18], iconAnchor: [40, 9],
+                }),
+                interactive: false, zIndexOffset: 500,
+              }).addTo(map);
+              state.submunicipalLabels.push(lbl);
+            } catch (e2) { }
+          }
+        }).addTo(map);
+
+        try {
+          map.fitBounds(state.submunicipalLayer.getBounds(), { padding: [40, 40], maxZoom: 13 });
+        } catch (e) { }
+
+        showToast(`${sigunguName} 행정동 표시 — 원하는 동을 클릭하세요`, 'info');
+      }
+
+      async function showOriginArea(portName, map) {
+        clearOriginAreaLayer();
+        if (!map) return;
+
+        const loc = PORT_LOCATION[portName];
+        if (!loc) { console.warn('showOriginArea: no PORT_LOCATION for', portName); return; }
+
+        // Fetch municipalGeo if not loaded yet
+        if (!state.municipalGeo) {
+          try {
+            showToast('행정구역 데이터 로딩 중...', 'info');
+            const municipalUrl = 'https://raw.githubusercontent.com/southkorea/southkorea-maps/master/kostat/2012/json/municipalities-geo-simple.json';
+            const resp = await fetch(municipalUrl);
+            if (resp.ok) {
+              state.municipalGeo = await resp.json();
+            } else {
+              console.error('municipalGeo fetch failed:', resp.status);
+              showToast('행정구역 데이터 로드 실패', 'error');
+              return;
+            }
+          } catch (e) {
+            console.error('municipalGeo fetch error:', e);
+            showToast('행정구역 데이터 로드 실패', 'error');
+            return;
+          }
+        }
+
+        const provCode = PROVINCE_CODES[loc.sido];
+        if (!provCode) { console.warn('showOriginArea: no PROVINCE_CODE for', loc.sido); return; }
+
+        // Log first feature properties for debugging
+        if (state.municipalGeo.features.length > 0) {
+          console.log('municipalGeo sample feature properties:', state.municipalGeo.features[0].properties);
+        }
+
+        const filtered = {
+          type: 'FeatureCollection',
+          features: state.municipalGeo.features.filter(f => {
+            const props = f.properties;
+            const code = props.code || props.Code || props.SIG_CD || props.adm_cd || '';
+            return String(code).startsWith(provCode);
+          })
+        };
+        console.log(`showOriginArea: ${loc.sido} (code ${provCode}) → ${filtered.features.length} features`);
+
+        if (filtered.features.length === 0) {
+          showToast(`${loc.sido} 행정구역 데이터 없음`, 'error');
+          return;
+        }
+
+        const portSigungu = loc.sigungu;
+        function isPortSigungu(rawName) {
+          const a = rawName.replace(/\s/g, '');
+          const b = portSigungu.replace(/\s/g, '');
+          return a === b || b.startsWith(a) || a.startsWith(b.replace(/(시|군|구)$/, ''));
+        }
+
+        const originSidoKey = loc.sido;
+
+        state.originAreaLayer = L.geoJSON(filtered, {
+          style: feature => {
+            const rawName = feature.properties.name || feature.properties.Name
+              || feature.properties.SIG_KOR_NM || feature.properties.adm_nm || '';
+            const highlight = isPortSigungu(rawName);
+            return highlight
+              ? { fillColor: '#FF8200', fillOpacity: 0.40, color: '#FFB040', weight: 2.5, opacity: 1.0 }
+              : { fillColor: '#003A79', fillOpacity: 0.30, color: '#FF8200', weight: 1.2, opacity: 0.7 };
+          },
+          onEachFeature: (feature, lyr) => {
+            const rawName = feature.properties.name || feature.properties.Name
+              || feature.properties.SIG_KOR_NM || feature.properties.adm_nm || '';
+            const sigunguCode = String(feature.properties.code || '');
+            const highlight = isPortSigungu(rawName);
+
+            // Store sigungu code mapping
+            if (sigunguCode) { state.sigunguCodeMap[rawName] = sigunguCode; state.sigunguCodeToName[sigunguCode] = rawName; }
+
+            const styleNormal = highlight
+              ? { fillColor: '#FF8200', fillOpacity: 0.40, color: '#FFB040', weight: 2.5, opacity: 1.0 }
+              : { fillColor: '#003A79', fillOpacity: 0.30, color: '#FF8200', weight: 1.2, opacity: 0.7 };
+
+            lyr.on({
+              mouseover: e => e.target.setStyle({ fillOpacity: 0.6, weight: 2.5 }),
+              mouseout: e => e.target.setStyle(styleNormal),
+              click: () => {
+                if (sigunguCode) drillDownToEupmyeondong(sigunguCode, rawName, originSidoKey, map, 'origin');
+              }
+            });
+
+            // Label — interactive so click also drills down
+            try {
+              const center = lyr.getBounds().getCenter();
+              const labelM = L.marker(center, {
+                icon: L.divIcon({
+                  className: '',
+                  html: `<div style="cursor:pointer;
+              background:${highlight ? 'rgba(255,100,0,0.9)' : 'rgba(0,10,40,0.82)'};
+              color:${highlight ? '#fff' : '#FF8200'};font-size:${highlight ? 11 : 9}px;
+              font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;
+              border:1px solid ${highlight ? '#FFB040' : 'rgba(255,130,0,0.55)'};
+              font-family:'Noto Sans KR',sans-serif;">${rawName}</div>`,
+                  iconSize: [90, 22], iconAnchor: [45, 11],
+                }),
+                interactive: true, zIndexOffset: highlight ? 600 : 400,
+              }).addTo(map);
+              if (sigunguCode) labelM.on('click', () => drillDownToEupmyeondong(sigunguCode, rawName, originSidoKey, map, 'origin'));
+              state.originAreaLabels.push(labelM);
+            } catch (e2) { }
+          }
+        }).addTo(map);
+
+        // Zoom to the port's province bounds
+        try {
+          map.fitBounds(state.originAreaLayer.getBounds(), { padding: [60, 60], maxZoom: 11 });
+        } catch (e) { }
+      }
+
+      function selectOrigin(name, coords, marker) {
+        // Only allow in 'origin' mode
+        if (state.mapSelectMode !== 'origin') {
+          showToast(`도착지 선택 중입니다. 출발지 변경은 '🚢 출발지 선택' 버튼을 눌러 모드를 전환하세요.`, 'info');
+          return;
+        }
+
+        // Deselect previous — also clear persisted dong polygons
+        clearSelectedDongLayers();
+        clearOriginAreaLayer();
+        clearSubmunicipalLayer();
+        clearMunicipalLayer();
+        if (state.selectedPortMarker && state.selectedPortMarker !== marker) {
+          const prevName = state.selectedOrigin;
+          if (prevName && state.portMarkers[prevName]) {
+            state.portMarkers[prevName].setIcon(createPortIcon(prevName, false));
+          }
+        }
+
+        state.selectedOrigin = name;
+        state.selectedPortMarker = marker;
+        state.originLatLng = L.latLng(coords[0], coords[1]);
+        marker.setIcon(createPortIcon(name, true));
+
+        // Update panel
+        document.getElementById('origin-display').innerHTML =
+          `<strong style="color:var(--orange)">${name}</strong>
+     <span style="color:var(--text-muted);font-size:0.72rem;margin-left:8px">${coords[0].toFixed(4)}°N, ${coords[1].toFixed(4)}°E</span>`;
+
+        // Check oneway eligibility
+        const onewayWrap = document.getElementById('oneway-toggle-wrap');
+        if (onewayWrap) {
+          onewayWrap.style.display = ONEWAY_ELIGIBLE_ORIGINS.includes(name) ? 'block' : 'none';
+        }
+        state.oneway = false;
+        document.getElementById('oneway-cb-box').classList.remove('checked');
+
+        updateRouteSVG();
+        recalculate();
+        showToast(`출발지: ${name} 선택됨. 주변 시군구를 클릭하여 출발지 지역을 확정하세요.`, 'success');
+
+        // Stay in origin mode — update hint text to reflect next step
+        const hint = document.getElementById('map-hint');
+        if (hint) hint.innerHTML = '🗺️ <strong>항만 주변 시군구</strong>를 클릭하여 출발지 지역을 선택하세요.';
+
+        // Show origin area polygons
+        showOriginArea(name, state.map);
+      }
+
+      // ============================================================
+      // GEOJSON PROVINCES
+      // ============================================================
+      // English → Korean province name mapping (fallback for GeoJSON with English names)
+      const ENG_TO_KOR_PROVINCE = {
+        'Seoul': '서울특별시', 'Busan': '부산광역시', 'Daegu': '대구광역시',
+        'Incheon': '인천광역시', 'Gwangju': '광주광역시', 'Daejeon': '대전광역시',
+        'Ulsan': '울산광역시', 'Sejong': '세종특별자치시', 'Gyeonggi': '경기도',
+        'Gangwon': '강원특별자치도', 'Chungcheongbuk': '충청북도', 'Chungcheongnam': '충청남도',
+        'North Chungcheong': '충청북도', 'South Chungcheong': '충청남도',
+        'Jeollabuk': '전북특별자치도', 'Jeollanam': '전라남도',
+        'North Jeolla': '전북특별자치도', 'South Jeolla': '전라남도',
+        'Gyeongsangbuk': '경상북도', 'Gyeongsangnam': '경상남도',
+        'North Gyeongsang': '경상북도', 'South Gyeongsang': '경상남도',
+        'Jeju': '제주특별자치도',
+      };
+
+      function resolveProvinceName(props) {
+        // Direct Korean name fields (new GeoJSON uses 'name' for Korean)
+        const direct = props.name || props.name_kor || props.CTP_KOR_NM || props.SIDO_NM;
+        if (direct && /[가-힣]/.test(direct)) return direct; // Korean characters → use directly
+        // Try to map English name
+        const eng = props.name_eng || props.name || props.NAME;
+        if (eng) {
+          if (ENG_TO_KOR_PROVINCE[eng]) return ENG_TO_KOR_PROVINCE[eng];
+          for (const [k, v] of Object.entries(ENG_TO_KOR_PROVINCE)) {
+            if (eng.includes(k) || k.includes(eng)) return v;
+          }
+        }
+        return direct || eng || '';
+      }
+
+      async function loadGeoJSON(map) {
+        const provinceUrl = 'https://raw.githubusercontent.com/southkorea/southkorea-maps/master/kostat/2012/json/provinces-geo-simple.json';
+        const municipalUrl = 'https://raw.githubusercontent.com/southkorea/southkorea-maps/master/kostat/2012/json/municipalities-geo-simple.json';
+        try {
+          document.getElementById('loading-status').textContent = '행정구역 데이터 로딩 중...';
+          const [provResp, munResp] = await Promise.all([fetch(provinceUrl), fetch(municipalUrl)]);
+          if (!provResp.ok) throw new Error('Province GeoJSON load failed');
+          const geojson = await provResp.json();
+          const munGeojson = munResp.ok ? await munResp.json() : null;
+          state.municipalGeo = munGeojson;
+          if (munGeojson && munGeojson.features.length > 0) {
+            console.log('[GeoJSON] municipalGeo loaded:', munGeojson.features.length, 'features');
+            console.log('[GeoJSON] sample properties:', munGeojson.features[0].properties);
+          } else {
+            console.warn('[GeoJSON] municipalGeo NOT loaded (resp.ok:', munResp.ok, ')');
+          }
+
+          const layer = L.geoJSON(geojson, {
+            style: () => ({
+              fillColor: '#003A79',
+              fillOpacity: 0.18,
+              color: '#FF8200',
+              weight: 1.0,
+              opacity: 0.6,
+            }),
+            onEachFeature: (feature, layer) => {
+              const name = resolveProvinceName(feature.properties);
+              layer.on({
+                mouseover: e => {
+                  if (state.mapSelectMode === 'dest')
+                    e.target.setStyle({ fillOpacity: 0.45, color: '#FFA040', weight: 2 });
+                },
+                mouseout: e => {
+                  if (state.currentProvince !== name)
+                    e.target.setStyle({ fillOpacity: 0.18, color: '#FF8200', weight: 1.0 });
+                },
+                click: e => { onProvinceClick(name, e.target, map); }
+              });
+
+              // Province label
+              const centroid = PROVINCE_CENTROIDS[name];
+              if (centroid) {
+                L.marker(centroid, {
+                  icon: L.divIcon({
+                    className: 'province-label',
+                    html: `<div>${name.replace('특별자치', '').replace('광역시', '').replace('특별시', '')}</div>`,
+                    iconSize: [80, 20], iconAnchor: [40, 10],
+                  }),
+                  interactive: false, zIndexOffset: -1000,
+                }).addTo(map);
+              }
+            }
+          }).addTo(map);
+
+          state.geoJsonLayer = layer;
+          return layer;
+        } catch (e) {
+          console.error('GeoJSON load error:', e);
+          showToast('지도 데이터 로드 실패. 직접 입력 모드를 이용하세요.', 'error');
+          return null;
+        }
+      }
+
+      // ============================================================
+      // SIGUNGU APPROXIMATE COORDS (for map marker placement)
+      // ============================================================
+      const SIGUNGU_APPROX = {
+        // 서울
+        '종로구': [37.5970, 126.9773], '중구': [37.5640, 126.9976], '용산구': [37.5384, 126.9654], '성동구': [37.5635, 127.0370],
+        '광진구': [37.5385, 127.0822], '동대문구': [37.5744, 127.0397], '중랑구': [37.6066, 127.0928], '성북구': [37.5894, 127.0168],
+        '강북구': [37.6398, 127.0256], '도봉구': [37.6688, 127.0470], '노원구': [37.6543, 127.0569], '은평구': [37.6026, 126.9291],
+        '서대문구': [37.5791, 126.9368], '마포구': [37.5638, 126.9014], '양천구': [37.5170, 126.8665], '강서구': [37.5509, 126.8495],
+        '구로구': [37.4954, 126.8876], '금천구': [37.4570, 126.8955], '영등포구': [37.5264, 126.8962], '동작구': [37.5124, 126.9393],
+        '관악구': [37.4784, 126.9517], '서초구': [37.4837, 127.0324], '강남구': [37.5172, 127.0473], '송파구': [37.5145, 127.1059],
+        '강동구': [37.5301, 127.1238],
+        // 부산
+        '중구': [35.1057, 129.0320], '서구': [35.0980, 129.0248], '동구': [35.1265, 129.0461], '영도구': [35.0863, 129.0674],
+        '부산진구': [35.1634, 129.0530], '동래구': [35.2040, 129.0862], '남구': [35.1362, 129.0845], '북구': [35.1970, 128.9904],
+        '해운대구': [35.1629, 129.1604], '사하구': [35.1047, 128.9745], '금정구': [35.2435, 129.0914], '강서구': [35.2124, 128.9811],
+        '연제구': [35.1767, 129.0791], '수영구': [35.1454, 129.1132], '사상구': [35.1524, 128.9924],
+        '기장군': [35.2447, 129.2223],
+        // 인천
+        '중구': [37.4742, 126.6215], '동구': [37.4741, 126.6452], '미추홀구': [37.4560, 126.6523], '연수구': [37.4104, 126.6770],
+        '남동구': [37.4468, 126.7315], '부평구': [37.5082, 126.7218], '계양구': [37.5374, 126.7378], '서구': [37.5451, 126.6800],
+        '강화군': [37.7473, 126.4880], '옹진군': [37.4515, 126.6360],
+        // 대구
+        '중구': [35.8694, 128.6062], '동구': [35.8862, 128.6354], '서구': [35.8720, 128.5593], '남구': [35.8463, 128.5985],
+        '북구': [35.8849, 128.5822], '수성구': [35.8582, 128.6306], '달서구': [35.8281, 128.5322], '달성군': [35.7750, 128.4312],
+        // 광주
+        '동구': [35.1457, 126.9232], '서구': [35.1527, 126.8899], '남구': [35.1334, 126.9025], '북구': [35.1739, 126.9120],
+        '광산구': [35.1408, 126.7936],
+        // 대전
+        '동구': [36.3121, 127.4519], '중구': [36.3245, 127.4212], '서구': [36.3554, 127.3834], '유성구': [36.3624, 127.3561],
+        '대덕구': [36.3464, 127.4145],
+        // 울산
+        '중구': [35.5707, 129.3322], '남구': [35.5388, 129.3278], '동구': [35.5052, 129.4160], '북구': [35.5955, 129.3608],
+        '울주군': [35.5219, 129.2154],
+        // 세종
+        '세종시': [36.4800, 127.2890],
+        // 경기
+        '수원시': [37.2636, 127.0286], '성남시': [37.4202, 127.1265], '의정부시': [37.7382, 127.0338], '안양시': [37.3943, 126.9568],
+        '부천시': [37.5034, 126.7660], '광명시': [37.4785, 126.8642], '평택시': [36.9924, 127.1129], '동두천시': [37.9038, 127.0600],
+        '안산시': [37.3219, 126.8309], '고양시': [37.6583, 126.8320], '과천시': [37.4292, 126.9877], '구리시': [37.5943, 127.1296],
+        '남양주시': [37.6361, 127.2165], '오산시': [37.1498, 127.0773], '시흥시': [37.3800, 126.8029], '군포시': [37.3617, 126.9352],
+        '의왕시': [37.3449, 126.9681], '하남시': [37.5396, 127.2147], '용인시': [37.2411, 127.1776], '파주시': [37.7599, 126.7800],
+        '이천시': [37.2723, 127.4353], '안성시': [37.0079, 127.2798], '김포시': [37.6153, 126.7156], '화성시': [37.1998, 126.8316],
+        '광주시': [37.4296, 127.2553], '양주시': [37.7853, 127.0456], '포천시': [37.8944, 127.1986], '여주시': [37.2984, 127.6376],
+        '연천군': [38.0964, 127.0748], '가평군': [37.8314, 127.5097], '양평군': [37.4916, 127.4877],
+        // 강원
+        '춘천시': [37.8813, 127.7298], '원주시': [37.3422, 127.9201], '강릉시': [37.7520, 128.8761], '동해시': [37.5244, 129.1139],
+        '태백시': [37.1641, 129.0201], '속초시': [38.2069, 128.5919], '삼척시': [37.4499, 129.1648], '홍천군': [37.6973, 127.8884],
+        '횡성군': [37.4916, 127.9848], '영월군': [37.1836, 128.4623], '평창군': [37.3701, 128.3896], '정선군': [37.3797, 128.6614],
+        '철원군': [38.1469, 127.3130], '화천군': [38.1062, 127.7082], '양구군': [38.1084, 127.9896], '인제군': [38.0694, 128.1707],
+        '고성군': [38.3801, 128.4679], '양양군': [38.0753, 128.6192],
+        // 충북
+        '청주시': [36.6424, 127.4890], '충주시': [36.9908, 127.9259], '제천시': [37.1325, 128.1908], '보은군': [36.4893, 127.7291],
+        '옥천군': [36.3026, 127.5706], '영동군': [36.1748, 127.7786], '증평군': [36.7851, 127.5825], '진천군': [36.8557, 127.4363],
+        '괴산군': [36.8155, 127.7876], '음성군': [36.9394, 127.6903], '단양군': [36.9845, 128.3653],
+        // 충남
+        '천안시': [36.8151, 127.1139], '공주시': [36.4465, 127.1190], '보령시': [36.3331, 126.6137], '아산시': [36.7898, 127.0025],
+        '서산시': [36.7848, 126.4503], '논산시': [36.1878, 127.0983], '계룡시': [36.2773, 127.2488], '당진시': [36.8894, 126.6456],
+        '금산군': [36.1086, 127.4880], '부여군': [36.2750, 126.9095], '서천군': [36.0800, 126.6916], '청양군': [36.4576, 126.8022],
+        '홍성군': [36.5988, 126.6603], '예산군': [36.6805, 126.8486], '태안군': [36.7455, 126.2982],
+        // 전북
+        '전주시': [35.8242, 127.1480], '군산시': [35.9676, 126.7368], '익산시': [35.9483, 126.9576], '정읍시': [35.5698, 126.8563],
+        '남원시': [35.4164, 127.3901], '김제시': [35.8033, 126.8806], '완주군': [35.9057, 127.1619], '진안군': [35.7908, 127.4243],
+        '무주군': [36.0030, 127.6606], '장수군': [35.6474, 127.5211], '임실군': [35.6178, 127.2892], '순창군': [35.3743, 127.1374],
+        '고창군': [35.4354, 126.7022], '부안군': [35.7308, 126.7330],
+        // 전남
+        '목포시': [34.8118, 126.3922], '여수시': [34.7604, 127.6622], '순천시': [34.9506, 127.4872], '나주시': [35.0159, 126.7103],
+        '광양시': [34.9407, 127.6960], '담양군': [35.3213, 126.9884], '곡성군': [35.2813, 127.2918], '구례군': [35.2027, 127.4614],
+        '고흥군': [34.6073, 127.2758], '보성군': [34.7715, 127.0793], '화순군': [35.0644, 126.9861], '장흥군': [34.6818, 126.9075],
+        '강진군': [34.6424, 126.7679], '해남군': [34.5740, 126.5993], '영암군': [34.8002, 126.6963], '무안군': [34.9907, 126.4814],
+        '함평군': [35.0646, 126.5172], '영광군': [35.2775, 126.5121], '장성군': [35.3020, 126.7848], '완도군': [34.3108, 126.7549],
+        '진도군': [34.4863, 126.2643], '신안군': [34.8271, 126.1082],
+        // 경북
+        '포항시': [36.0190, 129.3435], '경주시': [35.8562, 129.2247], '김천시': [36.1397, 128.1136], '안동시': [36.5684, 128.7294],
+        '구미시': [36.1196, 128.3446], '영주시': [36.8057, 128.6239], '영천시': [35.9736, 128.9382], '상주시': [36.4110, 128.1591],
+        '문경시': [36.5869, 128.1867], '경산시': [35.8253, 128.7414], '군위군': [36.2400, 128.5720], '의성군': [36.3530, 128.6970],
+        '청송군': [36.4357, 129.0571], '영양군': [36.6673, 129.1125], '영덕군': [36.4149, 129.3651], '청도군': [35.6480, 128.7363],
+        '고령군': [35.7267, 128.2636], '성주군': [35.9196, 128.2835], '칠곡군': [35.9958, 128.4016], '예천군': [36.6566, 128.2956],
+        '봉화군': [36.8931, 128.7323], '울진군': [37.0005, 129.4004], '울릉군': [37.4841, 130.9058],
+        // 경남
+        '창원시': [35.2280, 128.6812], '진주시': [35.1801, 128.1079], '통영시': [34.8544, 128.4331], '사천시': [35.0037, 128.0643],
+        '김해시': [35.2286, 128.8896], '밀양시': [35.5038, 128.7463], '거제시': [34.8808, 128.6212], '양산시': [35.3350, 129.0369],
+        '의령군': [35.3223, 128.2628], '함안군': [35.2727, 128.4065], '창녕군': [35.5432, 128.4919], '고성군': [34.9741, 128.3228],
+        '남해군': [34.8376, 127.8923], '하동군': [35.0672, 127.7517], '산청군': [35.4156, 127.8737], '함양군': [35.5196, 127.7253],
+        '거창군': [35.6872, 127.9103], '합천군': [35.5665, 128.1651],
+        // 제주
+        '제주시': [33.4996, 126.5312], '서귀포시': [33.2541, 126.5600],
+      };
+
+      function findSidoKey(provinceName, rateOriginData) {
+        // Direct match
+        if (rateOriginData[provinceName]) return provinceName;
+        // Normalize province name variants
+        const variants = [
+          provinceName,
+          provinceName.replace('특별자치도', '도').replace('특별자치시', '시'),
+          provinceName.replace('광역시', '시').replace('특별시', '시'),
+        ];
+        for (const v of variants) {
+          if (rateOriginData[v]) return v;
+        }
+        // Partial match by first 2 chars
+        const prefix2 = provinceName.substring(0, 2);
+        for (const k of Object.keys(rateOriginData)) {
+          if (k.startsWith(prefix2) || provinceName.startsWith(k.substring(0, 2))) {
+            return k;
+          }
+        }
+        return null;
+      }
+
+      function onProvinceClick(provinceName, layerEl, map) {
+        // Must be in destination mode
+        if (state.mapSelectMode !== 'dest') {
+          if (!state.selectedOrigin) {
+            showToast('먼저 항만(출발지)을 선택하세요.', 'error');
+          } else {
+            showToast(`도착지를 선택하려면 '📍 도착지 선택' 버튼을 먼저 누르세요.`, 'info');
+          }
+          return;
+        }
+
+        state.currentProvince = provinceName;
+
+        // Dim all provinces, highlight selected
+        if (state.geoJsonLayer) {
+          state.geoJsonLayer.eachLayer(l => {
+            const n = l.feature ? resolveProvinceName(l.feature.properties) : '';
+            l.setStyle(n === provinceName
+              ? { fillOpacity: 0.35, color: '#FFA040', weight: 2 }
+              : { fillOpacity: 0.08, color: '#FF8200', weight: 0.6, opacity: 0.3 });
+          });
+        }
+
+        // Find sido in RATE_DATA
+        const origin = state.selectedOrigin;
+        if (!origin) { showToast('먼저 항만(출발지)을 선택하세요.', 'error'); return; }
+
+        const rateOriginData = RATE_DATA[origin];
+        if (!rateOriginData) return;
+
+        const sidoKey = findSidoKey(provinceName, rateOriginData);
+
+        // Zoom to province bounds
+        try { map.fitBounds(layerEl.getBounds(), { padding: [40, 40], maxZoom: 11 }); } catch (e) { }
+
+        // Clear old layers (dest dong polygon replaced when new one is chosen)
+        if (state.selectedDestDongLayer && state.map) {
+          state.map.removeLayer(state.selectedDestDongLayer.layer);
+          if (state.selectedDestDongLayer.labelMarker) state.map.removeLayer(state.selectedDestDongLayer.labelMarker);
+          state.selectedDestDongLayer = null;
+        }
+        clearMunicipalLayer();
+        clearOriginAreaLayer();
+        clearSubmunicipalLayer();
+        clearSigunguMarkers();
+        state.selectedSido = null; state.selectedSigungu = null; state.selectedDong = null;
+
+        if (!sidoKey || !rateOriginData[sidoKey]) {
+          showToast(`${provinceName} 데이터가 없습니다.`, 'error'); return;
+        }
+
+        state.selectedSido = sidoKey;
+        document.getElementById('selection-breadcrumb').style.display = 'block';
+        updateBreadcrumb(sidoKey, null, null);
+
+        const sigungusInData = Object.keys(rateOriginData[sidoKey]);
+
+        // ── 방법 1: 시군구 GeoJSON 폴리곤으로 표시 ──────────────────────────
+        if (state.municipalGeo) {
+          const provCode = PROVINCE_CODES[sidoKey] || PROVINCE_CODES[provinceName];
+          const filtered = {
+            type: 'FeatureCollection',
+            features: state.municipalGeo.features.filter(f => {
+              const code = f.properties.code || f.properties.Code || '';
+              return provCode && String(code).startsWith(provCode);
+            })
+          };
+
+          if (filtered.features.length > 0) {
+            state.municipalLayer = L.geoJSON(filtered, {
+              style: () => ({
+                fillColor: 'rgba(0,200,255,0.12)',
+                fillOpacity: 1,
+                color: '#00C8FF',
+                weight: 1.5,
+                opacity: 0.7,
+              }),
+              onEachFeature: (feature, lyr) => {
+                const rawName = feature.properties.name || feature.properties.Name || '';
+                const sigunguCode = String(feature.properties.code || '');
+                const sigungu = matchSigunguName(rawName, sigungusInData);
+                if (!sigungu) return;
+
+                // Store sigungu code mapping
+                if (sigunguCode) { state.sigunguCodeMap[sigungu] = sigunguCode; state.sigunguCodeToName[sigunguCode] = sigungu; }
+
+                lyr.on({
+                  mouseover: e => {
+                    e.target.setStyle({ fillColor: 'rgba(0,200,255,0.35)', color: '#00E8FF', weight: 2.5 });
+                    e.target.bindTooltip(`<b style="font-family:'Noto Sans KR',sans-serif">${sigungu}</b>`,
+                      { sticky: true, className: 'msc-tooltip' }).openTooltip(e.latlng);
+                  },
+                  mouseout: e => {
+                    if (state.selectedSigungu !== sigungu)
+                      e.target.setStyle({ fillColor: 'rgba(0,200,255,0.12)', color: '#00C8FF', weight: 1.5, opacity: 0.7 });
+                    e.target.closeTooltip();
+                  },
+                  click: () => {
+                    if (sigunguCode) drillDownToEupmyeondong(sigunguCode, sigungu, sidoKey, map, 'dest');
+                  }
+                });
+
+                // Sigungu name label — interactive, clickable
+                try {
+                  const center = lyr.getBounds().getCenter();
+                  const labelM = L.marker(center, {
+                    icon: L.divIcon({
+                      className: '',
+                      html: `<div style="cursor:pointer;background:rgba(0,10,30,0.82);color:#00E8FF;font-size:10px;
+                  font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;
+                  border:1px solid rgba(0,200,255,0.55);
+                  font-family:'Noto Sans KR',sans-serif;">${sigungu}</div>`,
+                      iconSize: [90, 22], iconAnchor: [45, 11],
+                    }),
+                    interactive: true, zIndexOffset: 500,
+                  }).addTo(map);
+                  if (sigunguCode) labelM.on('click', () => drillDownToEupmyeondong(sigunguCode, sigungu, sidoKey, map, 'dest'));
+                  state.municipalLabels.push(labelM);
+                } catch (e2) { }
+              }
+            }).addTo(map);
+
+            showToast(`${sidoKey} · 시군구 이름을 클릭하면 행정동이 표시됩니다`, 'info');
+            return;
+          }
+        }
+
+        // ── 방법 2: GeoJSON 없거나 필터링 실패 시 → 큰 원형 마커 fallback ──
+        const provinceCentroid = PROVINCE_CENTROIDS[sidoKey] || [36.5, 127.5];
+        sigungusInData.forEach(sigungu => {
+          const known = SIGUNGU_APPROX[sigungu];
+          let lat = known ? known[0] : provinceCentroid[0] + (((hashStr(sigungu) & 0xFF) - 128) / 128) * 0.5;
+          let lng = known ? known[1] : provinceCentroid[1] + ((((hashStr(sigungu) >> 8) & 0xFF) - 128) / 128) * 0.7;
+
+          const marker = L.circleMarker([lat, lng], {
+            radius: 14, fillColor: '#00C8FF', fillOpacity: 0.55,
+            color: '#00E8FF', weight: 2,
+          }).addTo(map);
+          marker.bindTooltip(`<b style="font-family:'Noto Sans KR',sans-serif">${sigungu}</b>`,
+            { sticky: true, className: 'msc-tooltip' });
+
+          const label = L.marker([lat, lng], {
+            icon: L.divIcon({
+              className: '',
+              html: `<div style="background:rgba(0,10,30,0.82);color:#00E8FF;font-size:10px;
+          font-weight:700;padding:2px 6px;border-radius:4px;white-space:nowrap;
+          border:1px solid rgba(0,200,255,0.5);margin-top:16px;margin-left:-20px;
+          font-family:'Noto Sans KR',sans-serif;">${sigungu}</div>`,
+              iconSize: [90, 20], iconAnchor: [45, 0],
+            }),
+            interactive: false,
+          }).addTo(map);
+
+          marker.on('click', () => onSigunguClick(sidoKey, sigungu, map, L.latLng(lat, lng)));
+          marker.on('mouseover', () => marker.setStyle({ radius: 18, fillOpacity: 0.85 }));
+          marker.on('mouseout', () => {
+            if (state.selectedSigungu !== sigungu) marker.setStyle({ radius: 14, fillOpacity: 0.55 });
+          });
+          state.sigunguMarkers.push({ marker, label, sigungu, lat, lng });
+        });
+
+        showToast(`${sidoKey} · 시군구를 클릭하여 도착지를 선택하세요 (${sigungusInData.length}개)`, 'info');
+      }
+
+      // Province code prefix for municipality GeoJSON filtering
+      const PROVINCE_CODES = {
+        '서울특별시': '11', '부산광역시': '21', '대구광역시': '22', '인천광역시': '23',
+        '광주광역시': '24', '대전광역시': '25', '울산광역시': '26', '세종특별자치시': '29',
+        '경기도': '31', '강원특별자치도': '32', '강원도': '32',
+        '충청북도': '33', '충청남도': '34',
+        '전북특별자치도': '35', '전라북도': '35', '전라남도': '36',
+        '경상북도': '37', '경상남도': '38', '제주특별자치도': '39',
+      };
+
+      // Match GeoJSON feature name to rate data sigungu key
+      // Handles minor spelling differences (시/군/구 suffix variations)
+      // Match 행정동 name from GeoJSON against RATE_DATA keys (handles 2012↔2026 name variations)
+      function matchDongName(rawName, dongKeys) {
+        if (!rawName || !dongKeys || dongKeys.length === 0) return null;
+        const normalize = s => s.replace(/\s/g, '').replace(/제(\d)/g, '$1');
+        const norm = normalize(rawName);
+        // 1. Exact
+        if (dongKeys.includes(rawName)) return rawName;
+        // 2. Normalize (remove spaces, 제N→N)
+        for (const d of dongKeys) { if (normalize(d) === norm) return d; }
+        // 3. Prefix match (GeoJSON "가락동" → RATE "가락제1동", "가락제2동" → pick first)
+        const base = rawName.replace(/(제?\d+동|동|읍|면|리)$/, '');
+        const matches = dongKeys.filter(d => d.startsWith(base) || normalize(d).startsWith(normalize(base)));
+        if (matches.length > 0) return matches[0];
+        // 4. Substring
+        for (const d of dongKeys) {
+          if (rawName.includes(d.replace(/(동|읍|면|리)$/, '')) || d.includes(base)) return d;
+        }
+        return null;
+      }
+
+      function matchSigunguName(rawName, candidates) {
+        if (!rawName) return null;
+        // Exact match
+        if (candidates.includes(rawName)) return rawName;
+        // Strip trailing 시/군/구 and try
+        const stripped = rawName.replace(/(시|군|구)$/, '');
+        for (const c of candidates) {
+          if (c === rawName || c.startsWith(stripped) || rawName.startsWith(c.replace(/(시|군|구)$/, ''))) return c;
+        }
+        // Partial include
+        for (const c of candidates) {
+          if (rawName.includes(c) || c.includes(rawName)) return c;
+        }
+        return null;
+      }
+
+      function clearMunicipalLayer() {
+        if (state.municipalLayer && state.map) {
+          state.map.removeLayer(state.municipalLayer);
+          state.municipalLayer = null;
+        }
+        state.municipalLabels.forEach(m => { if (state.map) state.map.removeLayer(m); });
+        state.municipalLabels = [];
+      }
+
+      // Reset province layer to default neutral style
+      function resetProvinceLayer() {
+        if (!state.geoJsonLayer) return;
+        state.geoJsonLayer.eachLayer(l => {
+          l.setStyle({ fillColor: '#003A79', fillOpacity: 0.18, color: '#FF8200', weight: 1.0, opacity: 0.6 });
+        });
+        state.currentProvince = null;
+      }
+
+      // Remove persisted dong layers
+      function clearSelectedDongLayers() {
+        if (state.selectedOriginDongLayer && state.map) {
+          state.map.removeLayer(state.selectedOriginDongLayer.layer);
+          if (state.selectedOriginDongLayer.labelMarker) state.map.removeLayer(state.selectedOriginDongLayer.labelMarker);
+          state.selectedOriginDongLayer = null;
+        }
+        if (state.originMarker && state.map) {
+          state.map.removeLayer(state.originMarker);
+          state.originMarker = null;
+        }
+        if (state.selectedDestDongLayer && state.map) {
+          state.map.removeLayer(state.selectedDestDongLayer.layer);
+          if (state.selectedDestDongLayer.labelMarker) state.map.removeLayer(state.selectedDestDongLayer.labelMarker);
+          state.selectedDestDongLayer = null;
+        }
+      }
+
+      // Create a persisted single-dong polygon layer
+      function pinDongPolygon(feature, mode, dongName, sigunguName) {
+        if (!state.map || !feature?.geometry) return;
+        const isOrigin = mode === 'origin';
+        const fillColor = isOrigin ? 'rgba(255,130,0,0.35)' : 'rgba(0,200,255,0.30)';
+        const lineColor = isOrigin ? '#FFB040' : '#00E8FF';
+        const tagBg = isOrigin ? 'rgba(255,100,0,0.92)' : 'rgba(0,30,70,0.92)';
+        const tagColor = isOrigin ? '#fff' : '#00E8FF';
+        const tagBorder = isOrigin ? '#FFB040' : 'rgba(0,200,255,0.7)';
+        const tagPrefix = isOrigin ? '출발지' : '도착지';
+
+        // ── 1. Polygon layer ──
+        const layer = L.geoJSON(feature, {
+          style: { fillColor, fillOpacity: 1, color: lineColor, weight: 2.5, opacity: 1 },
+          interactive: false,
+        }).addTo(state.map);
+
+        // ── 2. No polygon-center label; labels are shown on pin markers instead ──
+        let labelMarker = null;
+
+        // ── 3. Store both polygon + label together ──
+        const combined = { layer, labelMarker };
+
+        if (isOrigin) {
+          if (state.selectedOriginDongLayer) {
+            state.map.removeLayer(state.selectedOriginDongLayer.layer);
+            if (state.selectedOriginDongLayer.labelMarker) state.map.removeLayer(state.selectedOriginDongLayer.labelMarker);
+          }
+          state.selectedOriginDongLayer = combined;
+        } else {
+          if (state.selectedDestDongLayer) {
+            state.map.removeLayer(state.selectedDestDongLayer.layer);
+            if (state.selectedDestDongLayer.labelMarker) state.map.removeLayer(state.selectedDestDongLayer.labelMarker);
+          }
+          state.selectedDestDongLayer = combined;
+        }
+
+        // ── 4. Update UI panel ──
+        if (isOrigin) {
+          const el = document.getElementById('origin-display');
+          if (el) el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <strong style="color:var(--orange);font-size:0.88rem">${state.selectedOrigin}</strong>
+        <span style="color:rgba(255,130,0,0.5);font-size:0.78rem">›</span>
+        <span style="color:var(--orange);font-size:0.85rem;font-weight:600">${sigunguName} ${dongName}</span>
+      </div>`;
+        } else {
+          const bc = document.getElementById('selection-breadcrumb');
+          if (bc) {
+            bc.style.display = 'block';
+            bc.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="color:var(--cyan);font-size:0.85rem;font-weight:600">${state.selectedSido || ''} ${sigunguName} ${dongName}</span>
+        </div>`;
+          }
+        }
+      }
+
+      // Clear ALL selection polygon layers and reset province layer
+      function clearAllSelectionLayers() {
+        clearSubmunicipalLayer();
+        clearMunicipalLayer();
+        clearOriginAreaLayer();
+        clearSigunguMarkers();
+        resetProvinceLayer();
+      }
+
+      function hashStr(s) {
+        let h = 0;
+        for (let i = 0; i < s.length; i++) {
+          h = Math.imul(31, h) + s.charCodeAt(i) | 0;
+        }
+        return Math.abs(h);
+      }
+
+      function clearSigunguMarkers() {
+        state.sigunguMarkers.forEach(({ marker, label }) => {
+          if (state.map) {
+            state.map.removeLayer(marker);
+            if (label) state.map.removeLayer(label);
+          }
+        });
+        state.sigunguMarkers = [];
+      }
+
+      // latlng: actual clicked L.LatLng (from polygon click event or fallback from circle marker)
+      function onSigunguClick(sidoKey, sigungu, map, latlng) {
+        state.selectedSigungu = sigungu;
+        state.selectedDong = null;
+
+        // Highlight GeoJSON municipal polygons (if active)
+        if (state.municipalLayer) {
+          state.municipalLayer.eachLayer(l => {
+            const rawName = l.feature?.properties?.name || l.feature?.properties?.Name || '';
+            const matched = matchSigunguName(rawName, [sigungu]);
+            l.setStyle(matched
+              ? { fillColor: 'rgba(255,130,0,0.35)', color: '#FFA040', weight: 2.5, opacity: 1 }
+              : { fillColor: 'rgba(0,200,255,0.12)', color: '#00C8FF', weight: 1.5, opacity: 0.7 });
+          });
+        }
+
+        // Highlight fallback circle markers
+        state.sigunguMarkers.forEach(item => {
+          const isSelected = item.sigungu === sigungu;
+          item.marker.setStyle({
+            fillColor: isSelected ? '#FF8200' : '#00C8FF',
+            fillOpacity: isSelected ? 1.0 : 0.55,
+            radius: isSelected ? 18 : 14,
+            color: isSelected ? 'rgba(255,130,0,0.8)' : '#00E8FF',
+          });
+        });
+
+        // Place a provisional destination marker at the click point
+        // (exact dong position will be refined when user picks a dong)
+        const markerLatlng = latlng || (() => {
+          const known = SIGUNGU_APPROX[sigungu];
+          if (known) return L.latLng(known[0], known[1]);
+          const c = PROVINCE_CENTROIDS[sidoKey];
+          return c ? L.latLng(c[0], c[1]) : null;
+        })();
+
+        if (markerLatlng) setDestination(markerLatlng, sidoKey, sigungu);
+
+        updateBreadcrumb(sidoKey, sigungu, null);
+        showDongList(sidoKey, sigungu, map);
+
+        // Set destDrillDown so drag-to-region works after sigungu selection
+        {
+          const sidoCode = PROVINCE_CODES[sidoKey] || '';
+          const sigunguCode = state.sigunguCodeMap[sigungu] || '';
+          let features = [];
+          if (state.submunicipalGeo && sigunguCode) {
+            features = state.submunicipalGeo.features.filter(f =>
+              String(f.properties.code || '').startsWith(sigunguCode.substring(0, 5))
+            );
+          } else if (state.submunicipalGeo && sidoCode) {
+            features = state.submunicipalGeo.features.filter(f =>
+              String(f.properties.code || '').startsWith(sidoCode)
+            );
+          }
+          state.destDrillDown = { sidoKey, sigunguName: sigungu, sigunguCode, sidoCode, features };
+          if (!state.submunicipalGeo) {
+            fetch(SUBMUNICIPAL_URL).then(r => r.json()).then(geo => {
+              state.submunicipalGeo = geo;
+              const code = state.sigunguCodeMap[sigungu] || '';
+              if (code) {
+                state.destDrillDown.features = geo.features.filter(f =>
+                  String(f.properties.code || '').startsWith(code.substring(0, 5))
+                );
+              } else {
+                state.destDrillDown.features = geo.features.filter(f =>
+                  String(f.properties.code || '').startsWith(sidoCode)
+                );
+              }
+            }).catch(() => { });
+          }
+        }
+
+        showToast(`${sigungu} 선택됨 — 패널에서 행정동을 선택하세요`, 'info');
+      }
+
+      // ============================================================
+      // DONG LIST IN PANEL
+      // ============================================================
+      function showDongList(sidoKey, sigungu, map) {
+        const origin = state.selectedOrigin;
+        if (!origin || !RATE_DATA[origin]?.[sidoKey]?.[sigungu]) return;
+
+        const dongs = Object.entries(RATE_DATA[origin][sidoKey][sigungu]);
+        const container = document.getElementById('dong-list-container');
+
+        // Store dong data for JS access (avoid onclick quoting issues)
+        window._currentDongs = {};
+        dongs.forEach(([dong, data]) => { window._currentDongs[dong] = data; });
+
+        let html = `<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px">
+    행정동 선택 (${dongs.length}개)</div>
+    <input type="text" placeholder="행정동 검색..." id="dong-search"
+      style="margin-bottom:6px;font-size:0.78rem"
+      oninput="filterDongList(this.value)">
+    <div class="dong-list" id="dong-scroll">`;
+
+        const sorted = dongs.sort((a, b) => a[0].localeCompare(b[0]));
+        sorted.forEach(([dong, data]) => {
+          const dist = data[0];
+          const escapedDong = dong.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+          html += `<div class="dong-item" data-dong="${escapedDong}" data-dist="${dist}">
+      <span>${dong}</span>
+      <span class="dong-item-dist">${dist}km</span>
+    </div>`;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+
+        // Attach click listeners
+        container.querySelectorAll('.dong-item').forEach(el => {
+          el.addEventListener('click', () => {
+            const dong = el.dataset.dong;
+            const data = window._currentDongs[dong];
+            if (data) selectDong(sidoKey, sigungu, dong, data[0]);
+          });
+        });
+      }
+
+      function filterDongList(query) {
+        const items = document.querySelectorAll('#dong-scroll .dong-item');
+        const q = query.trim().toLowerCase();
+        items.forEach(el => {
+          const dong = el.dataset.dong.toLowerCase();
+          el.style.display = (!q || dong.includes(q)) ? '' : 'none';
+        });
+      }
+
+      function selectDong(sidoKey, sigungu, dong, dist) {
+        state.selectedSido = sidoKey;
+        state.selectedSigungu = sigungu;
+        state.selectedDong = dong;
+
+        // Ensure destDrillDown is set (may be null if user skipped map sigungu click)
+        if (!state.destDrillDown || state.destDrillDown.sigunguName !== sigungu) {
+          const sidoCode = PROVINCE_CODES[sidoKey] || '';
+          const sigunguCode = state.sigunguCodeMap[sigungu] || '';
+          let features = [];
+          if (state.submunicipalGeo && sigunguCode) {
+            features = state.submunicipalGeo.features.filter(f =>
+              String(f.properties.code || '').startsWith(sigunguCode.substring(0, 5))
+            );
+          } else if (state.submunicipalGeo && sidoCode) {
+            features = state.submunicipalGeo.features.filter(f =>
+              String(f.properties.code || '').startsWith(sidoCode)
+            );
+          }
+          state.destDrillDown = { sidoKey, sigunguName: sigungu, sigunguCode, sidoCode, features };
+        }
+
+        // Update dong list highlight
+        document.querySelectorAll('#dong-scroll .dong-item').forEach(el => {
+          el.classList.toggle('selected', el.dataset.dong === dong);
+        });
+
+        updateBreadcrumb(sidoKey, sigungu, dong);
+
+        // Place destination marker on map using sigungu position + dong hash offset
+        let destLatLng = null;
+        const sigunguMarkerItem = state.sigunguMarkers.find(m => m.sigungu === sigungu);
+        if (sigunguMarkerItem) {
+          const hash2 = hashStr(dong);
+          const latOffset = (((hash2 & 0xFF) - 128) / 128) * 0.15;
+          const lngOffset = ((((hash2 >> 8) & 0xFF) - 128) / 128) * 0.18;
+          destLatLng = L.latLng(sigunguMarkerItem.lat + latOffset, sigunguMarkerItem.lng + lngOffset);
+        } else {
+          const centroid = PROVINCE_CENTROIDS[sidoKey];
+          if (centroid) destLatLng = L.latLng(centroid[0], centroid[1]);
+        }
+
+        if (destLatLng) {
+          setDestination(destLatLng, sidoKey, `${sigungu} ${dong}`);
+        }
+
+        recalculate();
+        showToast(`도착지: ${sigungu} ${dong} (${dist}km)`, 'success');
+      }
+
+      function setDestination(latlng, sido, name) {
+        state.destLatLng = latlng;
+
+        // Remove existing dest marker
+        if (state.destMarker && state.map) {
+          state.map.removeLayer(state.destMarker);
+        }
+
+        const fullAddr = sido ? `${sido} ${name}` : name;
+
+        // Create draggable dest marker (prominent drop-pin)
+        state.destMarker = L.marker(latlng, {
+          draggable: true,
+          icon: L.divIcon({
+            className: '',
+            html: `<div class="dest-pin-icon">
+        <svg viewBox="0 0 28 38" width="28" height="38" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 0C6.3 0 0 6.3 0 14c0 9.8 14 24 14 24S28 23.8 28 14C28 6.3 21.7 0 14 0z"
+            fill="#00C8FF" stroke="rgba(0, 26, 61, 0.5)" stroke-width="1.5"/>
+          <circle cx="14" cy="14" r="5" fill="white"/>
+        </svg>
+      </div>`,
+            iconSize: [28, 38],
+            iconAnchor: [14, 38],
+          }),
+          title: fullAddr || '도착지',
+        }).addTo(state.map);
+
+        if (fullAddr) {
+          state.destMarker.bindTooltip(
+            `<span style="font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:11px"><span style="opacity:0.75;font-size:9px;margin-right:4px">도착지</span>${fullAddr}</span>`,
+            { permanent: true, direction: 'right', className: 'msc-tooltip', offset: [16, -19] }
+          ).openTooltip();
+        }
+
+        state.destMarker.on('drag', e => {
+          state.destLatLng = e.target.getLatLng();
+          updateRouteSVG();
+          applyDragHighlight(e.target.getLatLng(), 'dest');
+        });
+
+        state.destMarker.on('dragend', e => {
+          updateRouteSVG();
+          commitDragSelection(e.target.getLatLng(), 'dest');
+        });
+
+        updateRouteSVG();
+      }
+
+      function setOriginMarker(latlng, sido, name) {
+        state.originLatLng = latlng;
+
+        // Remove existing origin marker
+        if (state.originMarker && state.map) {
+          state.map.removeLayer(state.originMarker);
+        }
+
+        const port = state.selectedOrigin || '';
+        const fullAddr = (sido ? `${sido} ${name}` : name);
+        const tooltipLabel = port ? `[${port}] ${fullAddr}` : fullAddr;
+
+        // Create draggable origin marker (orange pin)
+        state.originMarker = L.marker(latlng, {
+          draggable: true,
+          icon: L.divIcon({
+            className: '',
+            html: `<div class="origin-pin-icon">
+        <svg viewBox="0 0 28 38" width="28" height="38" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 0C6.3 0 0 6.3 0 14c0 9.8 14 24 14 24S28 23.8 28 14C28 6.3 21.7 0 14 0z"
+            fill="#FF8200" stroke="rgba(0, 26, 61, 0.5)" stroke-width="1.5"/>
+          <circle cx="14" cy="14" r="5" fill="white"/>
+        </svg>
+      </div>`,
+            iconSize: [28, 38],
+            iconAnchor: [14, 38],
+          }),
+          title: tooltipLabel || '출발지',
+        }).addTo(state.map);
+
+        if (tooltipLabel) {
+          state.originMarker.bindTooltip(
+            `<span style="font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:11px"><span style="opacity:0.75;font-size:9px;margin-right:4px">출발지</span>${tooltipLabel}</span>`,
+            { permanent: true, direction: 'right', className: 'msc-tooltip-origin', offset: [16, -19] }
+          ).openTooltip();
+        }
+
+        state.originMarker.on('drag', e => {
+          state.originLatLng = e.target.getLatLng();
+          updateRouteSVG();
+          applyDragHighlight(e.target.getLatLng(), 'origin');
+        });
+
+        state.originMarker.on('dragend', e => {
+          updateRouteSVG();
+          commitDragSelection(e.target.getLatLng(), 'origin');
+        });
+
+        updateRouteSVG();
+      }
+
+      // ============================================================
+      // POINT-IN-POLYGON (ray casting) for drag-based region lookup
+      // ============================================================
+      function _pipRing(lat, lng, ring) {
+        let inside = false;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+          const xi = ring[i][0], yi = ring[i][1];
+          const xj = ring[j][0], yj = ring[j][1];
+          if (((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi))
+            inside = !inside;
+        }
+        return inside;
+      }
+      function _pipPoly(lat, lng, coords) {
+        if (!_pipRing(lat, lng, coords[0])) return false;
+        for (let i = 1; i < coords.length; i++) if (_pipRing(lat, lng, coords[i])) return false;
+        return true;
+      }
+      function pointInFeature(lat, lng, feature) {
+        const g = feature.geometry;
+        if (!g) return false;
+        if (g.type === 'Polygon') return _pipPoly(lat, lng, g.coordinates);
+        if (g.type === 'MultiPolygon') return g.coordinates.some(c => _pipPoly(lat, lng, c));
+        return false;
+      }
+
+      function findDongAt(lat, lng, drillDown) {
+        if (!drillDown) return null;
+        // Search current sigungu first (fast)
+        for (const f of drillDown.features) {
+          if (pointInFeature(lat, lng, f)) return { feature: f, sidoKey: drillDown.sidoKey, sigunguName: drillDown.sigunguName };
+        }
+        // Fallback: search same sido in full GeoJSON
+        if (state.submunicipalGeo) {
+          const sc = drillDown.sidoCode;
+          for (const f of state.submunicipalGeo.features) {
+            if (!String(f.properties.code || '').startsWith(sc)) continue;
+            if (pointInFeature(lat, lng, f)) {
+              const code5 = String(f.properties.code || '').substring(0, 5);
+              const sigunguName = state.sigunguCodeToName[code5] || drillDown.sigunguName;
+              return { feature: f, sidoKey: drillDown.sidoKey, sigunguName };
+            }
+          }
+        }
+        return null;
+      }
+
+      let _dragRaf = null;
+      function applyDragHighlight(latlng, mode) {
+        if (_dragRaf) return; // throttle to one frame
+        _dragRaf = requestAnimationFrame(() => {
+          _dragRaf = null;
+          const drillDown = mode === 'dest' ? state.destDrillDown : state.originDrillDown;
+          const hit = findDongAt(latlng.lat, latlng.lng, drillDown);
+          if (!hit) return;
+          const dongName = hit.feature.properties.name || hit.feature.properties.Name || '';
+          // Update polygon highlight
+          pinDongPolygon(hit.feature, mode, dongName, hit.sigunguName);
+          // Update marker tooltip
+          const marker = mode === 'dest' ? state.destMarker : state.originMarker;
+          if (marker && marker.getTooltip()) {
+            const prefix = mode === 'dest' ? '도착지' : '출발지';
+            const port = mode === 'origin' ? (state.selectedOrigin ? `[${state.selectedOrigin}] ` : '') : '';
+            marker.setTooltipContent(
+              `<span style="font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:11px">` +
+              `<span style="opacity:0.75;font-size:9px;margin-right:4px">${prefix}</span>` +
+              `${port}${hit.sidoKey} ${hit.sigunguName} ${dongName}</span>`
+            );
+          }
+
+          // Real-time calculation and UI update during drag
+          if (mode === 'dest') {
+            const origin = state.selectedOrigin;
+            let finalDong = dongName;
+            if (origin && RATE_DATA[origin]?.[hit.sidoKey]?.[hit.sigunguName]) {
+              const matched = matchDongName(dongName, Object.keys(RATE_DATA[origin][hit.sidoKey][hit.sigunguName]));
+              if (matched) finalDong = matched;
+            }
+            state.selectedSido = hit.sidoKey;
+            state.selectedSigungu = hit.sigunguName;
+            state.selectedDong = finalDong;
+            updateBreadcrumb(hit.sidoKey, hit.sigunguName, finalDong);
+            recalculate();
+          } else {
+            // Origin drag real-time UI update
+            state.selectedSido = hit.sidoKey;
+            state.selectedSigungu = hit.sigunguName;
+            state.selectedDong = dongName;
+            const el = document.getElementById('origin-display');
+            if (el) el.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <strong style="color:var(--orange);font-size:0.88rem">${state.selectedOrigin}</strong>
+          <span style="color:rgba(255,130,0,0.5);font-size:0.78rem">›</span>
+          <span style="color:var(--orange);font-size:0.85rem;font-weight:600">${hit.sigunguName} ${dongName}</span>
+        </div>`;
+            // Origin port is fixed (from first click), but we recalculate anyway in case something depends on it
+            recalculate();
+          }
+        });
+      }
+
+      function commitDragSelection(latlng, mode) {
+        const drillDown = mode === 'dest' ? state.destDrillDown : state.originDrillDown;
+        const hit = findDongAt(latlng.lat, latlng.lng, drillDown);
+        if (!hit) return;
+        const dongName = hit.feature.properties.name || hit.feature.properties.Name || '';
+        if (mode === 'dest') {
+          const origin = state.selectedOrigin;
+          let finalDong = dongName;
+          if (origin && RATE_DATA[origin]?.[hit.sidoKey]?.[hit.sigunguName]) {
+            const matched = matchDongName(dongName, Object.keys(RATE_DATA[origin][hit.sidoKey][hit.sigunguName]));
+            if (matched) finalDong = matched;
+          }
+          const dist = RATE_DATA[state.selectedOrigin]?.[hit.sidoKey]?.[hit.sigunguName]?.[finalDong]?.[0];
+          if (dist == null) { showToast(`${hit.sigunguName} ${finalDong}: 운임 데이터 없음`, 'error'); return; }
+          state.selectedSido = hit.sidoKey;
+          state.selectedSigungu = hit.sigunguName;
+          state.selectedDong = finalDong;
+          updateBreadcrumb(hit.sidoKey, hit.sigunguName, finalDong);
+          recalculate();
+          showToast(`도착지 변경: ${hit.sigunguName} ${finalDong} (${dist}km)`, 'success');
+        } else {
+          state.selectedSido = hit.sidoKey;
+          state.selectedSigungu = hit.sigunguName;
+          state.selectedDong = dongName;
+          const el = document.getElementById('origin-display');
+          if (el) el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <strong style="color:var(--orange);font-size:0.88rem">${state.selectedOrigin}</strong>
+        <span style="color:rgba(255,130,0,0.5);font-size:0.78rem">›</span>
+        <span style="color:var(--orange);font-size:0.85rem;font-weight:600">${hit.sigunguName} ${dongName}</span>
+      </div>`;
+          showToast(`출발지 변경: ${hit.sigunguName} ${dongName}`, 'success');
+        }
+      }
+
+      function updateBreadcrumb(sido, sigungu, dong) {
+        const el = document.getElementById('selection-breadcrumb');
+        el.style.display = 'block';
+        const parts = [sido, sigungu, dong].filter(Boolean);
+        el.innerHTML = `<span style="color:var(--cyan);font-size:0.85rem;font-weight:600">${parts.join(' ')}</span>`;
+      }
+
+      // ============================================================
+      // BEZIER CURVE SVG ANIMATION (PORT-I Style)
+      // ============================================================
+      function updateRouteSVG() {
+        const svg = document.getElementById('route-svg');
+        const group = document.getElementById('route-group');
+        if (!group || !state.map) return;
+
+        group.innerHTML = '';
+
+        if (!state.originLatLng || !state.destLatLng) return;
+
+        const map = state.map;
+        const originPx = map.latLngToContainerPoint(state.originLatLng);
+        const destPx = map.latLngToContainerPoint(state.destLatLng);
+
+        // Control point for bezier arc
+        const dx = destPx.x - originPx.x;
+        const dy = destPx.y - originPx.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 2) return;
+
+        const cpOffset = dist * 0.28;
+        const angle = Math.atan2(dy, dx);
+        const perpAngle = angle - Math.PI / 2;
+        const cpX = (originPx.x + destPx.x) / 2 + cpOffset * Math.cos(perpAngle);
+        const cpY = (originPx.y + destPx.y) / 2 + cpOffset * Math.sin(perpAngle);
+
+        const pathD = `M${originPx.x},${originPx.y} Q${cpX},${cpY} ${destPx.x},${destPx.y}`;
+
+        // Approximate path length for dasharray
+        const pathLen = Math.round(dist * 1.1);
+
+        // Background glow path
+        const bgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        bgPath.setAttribute('d', pathD);
+        bgPath.setAttribute('fill', 'none');
+        bgPath.setAttribute('stroke', 'rgba(255,130,0,0.1)');
+        bgPath.setAttribute('stroke-width', '6');
+        bgPath.setAttribute('stroke-linecap', 'round');
+        group.appendChild(bgPath);
+
+        // Main animated path - gradient via filter
+        const mainPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        mainPath.setAttribute('d', pathD);
+        mainPath.setAttribute('fill', 'none');
+        mainPath.setAttribute('stroke', 'url(#routeGrad)');
+        mainPath.setAttribute('stroke-width', '2.5');
+        mainPath.setAttribute('stroke-linecap', 'round');
+        mainPath.setAttribute('stroke-dasharray', '12 8');
+        mainPath.setAttribute('stroke-dashoffset', '0');
+        mainPath.style.animation = 'dashFlow 1.5s linear infinite';
+        mainPath.setAttribute('filter', 'url(#glow)');
+        group.appendChild(mainPath);
+
+        // Solid underline (static)
+        const solidPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        solidPath.setAttribute('d', pathD);
+        solidPath.setAttribute('fill', 'none');
+        solidPath.setAttribute('stroke', 'rgba(255,130,0,0.25)');
+        solidPath.setAttribute('stroke-width', '1');
+        solidPath.setAttribute('stroke-linecap', 'round');
+        group.appendChild(solidPath);
+
+        // Origin endpoint - orange pulsing circle
+        addEndpointCircle(group, originPx.x, originPx.y, '#FF8200', 'endpointPulse');
+
+        // Dest endpoint - cyan pulsing circle
+        addEndpointCircle(group, destPx.x, destPx.y, '#00C8FF', 'endpointPulse');
+
+        // Moving particle along path
+        addMovingParticle(group, pathD, pathLen);
+      }
+
+      function addEndpointCircle(group, cx, cy, color, animClass) {
+        // Static center dot
+        const inner = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        inner.setAttribute('cx', cx); inner.setAttribute('cy', cy);
+        inner.setAttribute('r', '5');
+        inner.setAttribute('fill', color);
+        inner.setAttribute('filter', 'url(#glow)');
+        group.appendChild(inner);
+
+        // Pulsing ring
+        const outer = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        outer.setAttribute('cx', cx); outer.setAttribute('cy', cy);
+        outer.setAttribute('r', '5');
+        outer.setAttribute('fill', 'none');
+        outer.setAttribute('stroke', color);
+        outer.setAttribute('stroke-width', '1.5');
+        outer.style.animation = `${animClass} 1.8s ease-out infinite`;
+        group.appendChild(outer);
+
+        const outer2 = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        outer2.setAttribute('cx', cx); outer2.setAttribute('cy', cy);
+        outer2.setAttribute('r', '5');
+        outer2.setAttribute('fill', 'none');
+        outer2.setAttribute('stroke', color);
+        outer2.setAttribute('stroke-width', '1');
+        outer2.style.animation = `${animClass} 1.8s ease-out 0.6s infinite`;
+        group.appendChild(outer2);
+      }
+
+      function addMovingParticle(group, pathD, pathLen) {
+        // Create a path element for the particle to animate along
+        const particlePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        particlePath.setAttribute('d', pathD);
+        particlePath.setAttribute('fill', 'none');
+        particlePath.setAttribute('stroke', 'none');
+        particlePath.setAttribute('id', 'particle-track-' + Date.now());
+        group.appendChild(particlePath);
+
+        // Particle circle using animateMotion
+        const particle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        particle.setAttribute('r', '4');
+        particle.setAttribute('fill', '#ffffff');
+        particle.setAttribute('filter', 'url(#glow)');
+        particle.setAttribute('opacity', '0.9');
+
+        const animMotion = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
+        animMotion.setAttribute('dur', '2.5s');
+        animMotion.setAttribute('repeatCount', 'indefinite');
+        animMotion.setAttribute('calcMode', 'spline');
+        animMotion.setAttribute('keySplines', '0.4 0 0.6 1');
+
+        const mpath = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
+        mpath.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#' + particlePath.getAttribute('id'));
+        animMotion.appendChild(mpath);
+        particle.appendChild(animMotion);
+        group.appendChild(particle);
+      }
+
+      // ============================================================
+      // COPY & PRINT
+      // ============================================================
+      function buildResultText(prefix) {
+        const origin = prefix === '' ? state.selectedOrigin : state.m_origin;
+        const sido = prefix === '' ? state.selectedSido : state.m_sido;
+        const sigungu = prefix === '' ? state.selectedSigungu : state.m_sigungu;
+        const dong = prefix === '' ? state.selectedDong : state.m_dong;
+        const containerSize = prefix === '' ? state.containerSize : state.m_containerSize;
+        const rateType = prefix === '' ? state.rateType : state.m_rateType;
+        const oneway = prefix === '' ? state.oneway : state.m_oneway;
+        const surchargeSet = prefix === '' ? state.selectedSurcharges : state.m_selectedSurcharges;
+        const weight40 = document.getElementById((prefix || '') + 'weight-40')?.value || 0;
+        const weight20 = document.getElementById((prefix || '') + 'weight-20')?.value || 0;
+        const returnLoad = prefix === '' ? state.returnLoad : state.m_returnLoad;
+        const waitingUnits = document.getElementById((prefix || '') + 'waiting-units')?.value || 0;
+        const waitingLocation = document.getElementById((prefix || '') + 'waiting-location')?.value || 'port';
+        const cancelTiming = document.getElementById((prefix || '') + 'cancel-timing')?.value || 'none';
+        const cancelReceived = document.getElementById((prefix || '') + 'cancel-received')?.value || 'no';
+        const scanner = prefix === '' ? state.scanner : state.m_scanner;
+
+        const rateResult = getBaseRate(origin, sido, sigungu, dong, containerSize, rateType, oneway);
+        if (!rateResult) return null;
+
+        const { items, surchargeTotal, grandTotal } = calcTotal(
+          rateResult.rate, surchargeSet, weight40, weight20, containerSize, returnLoad,
+          waitingUnits, waitingLocation, cancelTiming, cancelReceived, scanner
+        );
+
+        const rateTypeNames = { '위탁': '안전위탁운임', '사업자간': '운수사업자간 운임', '운송': '안전운송운임' };
+
+        let text = `MSC KOREA 안전운임 계산 결과 (2026)\n`;
+        text += `${'='.repeat(40)}\n`;
+        text += `출발지: ${origin}\n`;
+        text += `도착지: ${sido} ${sigungu} ${dong}\n`;
+        text += `컨테이너: ${containerSize}\n`;
+        text += `운임 유형: ${rateTypeNames[rateType]}\n`;
+        if (oneway) text += `편도 운임 적용\n`;
+        text += `거리: ${rateResult.dist}km\n`;
+        text += `${'─'.repeat(40)}\n`;
+        text += `기본운임: ${fmt(rateResult.rate)}\n`;
+        if (items.length > 0) {
+          text += `\n할증:\n`;
+          items.forEach(item => { text += `  ${item.name}: +${fmtNum(item.amount)}\n`; });
+          text += `할증 합계: +${fmtNum(surchargeTotal)}\n`;
+        }
+        text += `${'='.repeat(40)}\n`;
+        text += `합계: ${fmt(grandTotal)} (VAT 별도)\n`;
+        text += `${'='.repeat(40)}\n`;
+        text += `생성일시: ${new Date().toLocaleString('ko-KR')}\n`;
+        return text;
+      }
+
+      function copyResult() {
+        const text = buildResultText('');
+        if (!text) { showToast('계산 결과가 없습니다.', 'error'); return; }
+        navigator.clipboard?.writeText(text).then(() => showToast('결과가 복사되었습니다.', 'success'))
+          .catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = text; document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            showToast('결과가 복사되었습니다.', 'success');
+          });
+      }
+
+      function copyResultManual() {
+        const text = buildResultText('m-');
+        if (!text) { showToast('계산 결과가 없습니다.', 'error'); return; }
+        navigator.clipboard?.writeText(text).then(() => showToast('결과가 복사되었습니다.', 'success'))
+          .catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = text; document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            showToast('결과가 복사되었습니다.', 'success');
+          });
+      }
+
+      function printResult() {
+        window.print();
+      }
+
+      // ============================================================
+      // INITIALIZATION
+      // ============================================================
+      async function init() {
+        // Build surcharge checkboxes for both modes
+        buildSurchargeCheckboxes('');       // map mode (ids: surcharge-*)
+        buildSurchargeCheckboxes('m-');     // manual mode (ids: m-surcharge-*)
+
+        // Populate manual origin dropdown
+        populateManualOrigin();
+
+        // Init map
+        const map = initMap();
+
+        // Load GeoJSON
+        const geoLayer = await loadGeoJSON(map);
+
+        // Hide loading overlay
+        const overlay = document.getElementById('loading-overlay');
+        overlay.classList.add('hidden');
+        setTimeout(() => overlay.remove(), 700);
+
+        showToast('MSC KOREA 안전운임 계산기 준비완료', 'success');
+      }
+
+      // Start
+      document.addEventListener('DOMContentLoaded', init);
+
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        syncSVGSize();
+        updateRouteSVG();
+      });
+    </script>
+</body>
+
+</html>
