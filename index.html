@@ -1407,17 +1407,30 @@
     }
 
     .range-label-inner {
-      font-size: 0.65rem;
-      font-weight: 800;
+      font-size: 0.72rem;
+      font-weight: 400;
       color: #00E8FF;
       text-shadow: 0 0 6px rgba(0, 0, 0, 1), 0 0 3px #000;
       white-space: nowrap;
-      padding: 2px 4px;
-      background: rgba(0, 20, 40, 0.6);
+      padding: 3px 6px;
+      background: rgba(0, 12, 28, 0.75);
       border-radius: 4px;
       pointer-events: none;
       text-align: center;
-      border: 1px solid rgba(0, 200, 255, 0.3);
+      border: 1px solid rgba(0, 200, 255, 0.4);
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .range-label-name {
+      opacity: 0.85;
+      font-size: 0.65rem;
+    }
+
+    .range-label-price {
+      color: var(--orange-light);
+      font-weight: 600;
     }
 
     /* KM Indicator Overlay */
@@ -4677,10 +4690,11 @@
 
       function toggleRangeExplorer() {
         const btn = document.getElementById('range-explorer-btn');
+        const indicator = document.getElementById('range-radius-indicator');
         if (rangeState.active) {
           clearRangeExplorer();
           btn.classList.remove('active');
-          document.getElementById('range-radius-indicator').style.display = 'none';
+          indicator.style.display = 'none';
           showToast('반경 분석 종료', 'info');
         } else {
           if (!state.destLatLng) {
@@ -4689,10 +4703,12 @@
           }
           rangeState.active = true;
           btn.classList.add('active');
+          indicator.style.display = 'block';
+          indicator.textContent = `${(rangeState.radius / 1000).toFixed(1)} km`;
 
           // Background load deep geo data if not present
           if (!state.submunicipalGeo) {
-            showToast('분석을 위해 데이터 로딩을 시작합니다...', 'info');
+            showToast('전국 행정동 데이터를 분석 서버에서 호출합니다...', 'info');
             fetch(SUBMUNICIPAL_URL).then(r => r.json()).then(data => {
               state.submunicipalGeo = data;
               if (rangeState.active) refreshRangeAnalysis();
@@ -4701,7 +4717,7 @@
 
           initRangeInteraction();
           refreshRangeAnalysis();
-          showToast('반경 분석 활성화 (오른쪽으로 드래그하여 거리 조절)', 'success');
+          showToast('반경 분석 활성화', 'success');
         }
       }
 
@@ -4725,7 +4741,6 @@
           rangeState.dragStartX = (e.type === 'touchstart' ? e.touches[0].clientX : e.clientX);
           rangeState.dragStartRadius = rangeState.radius;
           btn.style.transition = 'none';
-          indicator.style.display = 'block';
         };
 
         const onMove = (e) => {
@@ -4745,7 +4760,6 @@
           if (!rangeState.isResizing) return;
           rangeState.isResizing = false;
           btn.style.transition = '';
-          setTimeout(() => { if (!rangeState.isResizing) indicator.style.display = 'none'; }, 1000);
           refreshRangeAnalysis();
         };
 
@@ -4787,60 +4801,105 @@
         const portData = RATE_DATA[origin];
         if (!portData) return;
 
-        // Build analysis source: Use submunicipalGeo if available, otherwise fallback to SIGUNGU_APPROX
-        let candidates = [];
+        // Perform analysis: We iterate through all features in submunicipalGeo if available
+        // If not yet loaded, we use the fallback SIGUNGU_APPROX to show something immediately
         if (state.submunicipalGeo) {
           state.submunicipalGeo.features.forEach(f => {
-            // Approximate center of dong polygon
-            const coords = f.geometry.coordinates;
-            // Simple centroid (handles Point or Polygon)
-            let lat, lng;
-            if (f.geometry.type === 'Point') {
-              [lng, lat] = coords;
+            const code = String(f.properties.code || '');
+            const sidoCode = code.substring(0, 2);
+            const sidoName = Object.keys(PROVINCE_CODES).find(k => PROVINCE_CODES[k] === sidoCode);
+            if (!sidoName || !portData[sidoName]) return;
+
+            // Simplified: Use polygon centroid for distance check
+            // For a tighter "intersection" feel, we can check if any vertex is within, but center is standard for large circles
+            const geom = f.geometry;
+            let lng, lat;
+            if (geom.type === 'Point') {
+              [lng, lat] = geom.coordinates;
             } else {
-              // For simplified logic, if Polygon, just take first ring's first point
-              const pts = f.geometry.type === 'Polygon' ? coords[0] : coords[0][0];
-              lng = pts[0][0]; lat = pts[0][1];
+              // Get first point of first ring as proxy for centroid
+              const ring = geom.type === 'Polygon' ? geom.coordinates[0] : geom.coordinates[0][0];
+              [lng, lat] = ring[0];
             }
-            const props = f.geometry.type === 'Polygon' ? f.properties : f.properties;
-            // Need mapping to RateData's sido/sigungu/dong
-            // This is complex - let's use the layer-based cache if it was built
-          });
-        }
+            const featureLatLng = L.latLng(lat, lng);
+            const dist = state.map.distance(center, featureLatLng);
 
-        // RELIABLE FALLBACK & MAIN LOGIC: Iterate through SIGUNGU_APPROX centers
-        Object.entries(SIGUNGU_APPROX).forEach(([sigunguName, coords]) => {
-          const latlng = L.latLng(coords[0], coords[1]);
-          const dist = state.map.distance(center, latlng);
-          if (dist <= radiusM) {
-            // Find first valid rate in this sigungu
-            // Since RATE_DATA is [port][sido][sigungu][dong], we need to find which sido this sigungu belongs to
-            for (const sido in portData) {
-              if (portData[sido][sigunguName]) {
-                const dongs = portData[sido][sigunguName];
-                const firstDong = Object.keys(dongs)[0];
-                const rateInfo = dongs[firstDong];
-                if (rateInfo) {
-                  const baseRate = rateInfo[1]; // Correct index for 40FT safety rate typically
-                  const { grandTotal } = calcTotal(baseRate, state.selectedSurcharges, 0, 0, '40FT', false, 0, 'port', 'none', 'no', false);
+            if (dist <= radiusM) {
+              const sigunguCode = code.substring(0, 5);
+              const sigunguName = state.sigunguCodeToName[sigunguCode];
+              const rawDongName = f.properties.name || f.properties.Name || '';
 
-                  const html = `<div class="range-label-inner">${(grandTotal / 10000).toFixed(0)}<span style="font-size:0.55rem">만</span></div>`;
-                  const marker = L.marker(latlng, {
-                    icon: L.divIcon({
-                      className: 'range-label',
-                      html: html,
-                      iconSize: [40, 20],
-                      iconAnchor: [20, 10]
-                    }),
-                    interactive: false
-                  }).addTo(state.map);
-                  rangeState.markers.push(marker);
+              // Find matching dong in RateData
+              const sidos = portData;
+              for (const sName in sidos) {
+                const sigungus = sidos[sName];
+                for (const sgName in sigungus) {
+                  const matchedDong = matchDongName(rawDongName, Object.keys(sigungus[sgName]));
+                  if (matchedDong) {
+                    const rateInfo = sigungus[sgName][matchedDong];
+                    const baseRate = rateInfo[1];
+                    const { grandTotal } = calcTotal(baseRate, state.selectedSurcharges, 0, 0, '40FT', false, 0, 'port', 'none', 'no', false);
+
+                    const html = `
+                         <div class="range-label-inner">
+                           <span class="range-label-name">${sgName} ${matchedDong}</span>
+                           <span style="opacity:0.6">:</span>
+                           <span class="range-label-price">${(grandTotal / 10000).toFixed(0)}만</span>
+                         </div>`;
+
+                    const marker = L.marker(featureLatLng, {
+                      icon: L.divIcon({
+                        className: 'range-label',
+                        html: html,
+                        iconSize: [120, 24],
+                        iconAnchor: [60, 12]
+                      }),
+                      interactive: false
+                    }).addTo(state.map);
+                    rangeState.markers.push(marker);
+                    return; // Exit nested loops once found
+                  }
                 }
-                break;
               }
             }
-          }
-        });
+          });
+        } else {
+          // Reliable fallback while loading: Sigungu centroids
+          Object.entries(SIGUNGU_APPROX).forEach(([sigunguName, coords]) => {
+            const latlng = L.latLng(coords[0], coords[1]);
+            const dist = state.map.distance(center, latlng);
+            if (dist <= radiusM) {
+              for (const sido in portData) {
+                if (portData[sido][sigunguName]) {
+                  const dongs = portData[sido][sigunguName];
+                  const firstDong = Object.keys(dongs)[0];
+                  const rateInfo = dongs[firstDong];
+                  if (rateInfo) {
+                    const baseRate = rateInfo[1];
+                    const { grandTotal } = calcTotal(baseRate, state.selectedSurcharges, 0, 0, '40FT', false, 0, 'port', 'none', 'no', false);
+                    const html = `
+                      <div class="range-label-inner">
+                        <span class="range-label-name">${sigunguName}</span>
+                        <span style="opacity:0.6">:</span>
+                        <span class="range-label-price">${(grandTotal / 10000).toFixed(0)}만</span>
+                      </div>`;
+                    const marker = L.marker(latlng, {
+                      icon: L.divIcon({
+                        className: 'range-label',
+                        html: html,
+                        iconSize: [80, 24],
+                        iconAnchor: [40, 12]
+                      }),
+                      interactive: false
+                    }).addTo(state.map);
+                    rangeState.markers.push(marker);
+                  }
+                  break;
+                }
+              }
+            }
+          });
+        }
       }
 
       // ============================================================
