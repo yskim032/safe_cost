@@ -1597,36 +1597,61 @@
         <div style="display:grid;grid-template-columns:0.85fr 1.35fr 0.9fr;gap:20px">
           <!-- Left Column -->
           <div>
+            <!-- ORIGIN CARD -->
             <div class="card">
-              <div class="card-title">출발지 → 도착지 선택</div>
+              <div class="card-title">출발지</div>
 
               <div class="form-group">
-                <label>출발 항만</label>
+                <label>항만</label>
                 <select id="m-origin" onchange="onManualOriginChange()">
                   <option value="">항만 선택...</option>
                 </select>
               </div>
 
-              <div style="height:1px;background:rgba(255,130,0,0.15);margin:10px 0"></div>
-              <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:6px;letter-spacing:0.04em">도착지 (행정동)
+              <div style="height:1px;background:rgba(255,130,0,0.12);margin:8px 0 6px"></div>
+              <div style="font-size:0.68rem;color:var(--text-muted);margin-bottom:5px;letter-spacing:0.04em">출발 행정구역
               </div>
 
               <div class="form-group">
                 <label>시/도</label>
+                <select id="m-org-sido" onchange="onManualOrgSidoChange()">
+                  <option value="">항만 선택 후 나타납니다</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>시/군/구</label>
+                <select id="m-org-sigungu" onchange="onManualOrgSigunguChange()">
+                  <option value="">시/도 선택 후 나타납니다</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>행정동</label>
+                <select id="m-org-dong" onchange="onManualOrgDongChange()">
+                  <option value="">시/군/구를 먼저 선택하세요</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- DESTINATION CARD -->
+            <div class="card">
+              <div class="card-title">도착지</div>
+
+              <div class="form-group">
+                <label>시/도</label>
                 <select id="m-sido" onchange="onManualSidoChange()">
-                  <option value="">항만을 먼저 선택하세요</option>
+                  <option value="">시/도 선택...</option>
                 </select>
               </div>
               <div class="form-group">
                 <label>시/군/구</label>
                 <select id="m-sigungu" onchange="onManualSigunguChange()">
-                  <option value="">시/도를 먼저 선택하세요</option>
+                  <option value="">시/군/구 선택...</option>
                 </select>
               </div>
               <div class="form-group">
                 <label>행정동</label>
                 <select id="m-dong" onchange="onManualDongChange()">
-                  <option value="">시/군/구를 먼저 선택하세요</option>
+                  <option value="">행정동 선택...</option>
                 </select>
               </div>
               <div id="m-oneway-wrap" style="display:none">
@@ -2547,35 +2572,89 @@
         const origin = document.getElementById('m-origin').value;
         state.m_origin = origin || null;
         state.m_sido = null; state.m_sigungu = null; state.m_dong = null;
+        state.m_orgSido = null; state.m_orgSigungu = null; state.m_orgDong = null;
         state.m_oneway = false;
 
-        // Check oneway eligibility (null-safe)
-        const onewayWrap = document.getElementById('m-oneway-wrap');
-        if (onewayWrap) {
-          onewayWrap.style.display = ONEWAY_ELIGIBLE_ORIGINS.includes(origin) ? 'block' : 'none';
-        }
         const cbBox = document.getElementById('m-oneway-cb-box');
         if (cbBox) cbBox.classList.remove('checked');
+        const onewayWrap = document.getElementById('m-oneway-wrap');
+        if (onewayWrap) onewayWrap.style.display = ONEWAY_ELIGIBLE_ORIGINS.includes(origin) ? 'block' : 'none';
 
-        // Reset cascading dropdowns
+        // Reset destination dropdowns
         const sidoSel = document.getElementById('m-sido');
         const sigunguSel = document.getElementById('m-sigungu');
         const dongSel = document.getElementById('m-dong');
-        if (!sidoSel) return;
+        if (sidoSel) {
+          sidoSel.innerHTML = '<option value="">시/도 선택...</option>';
+          sigunguSel.innerHTML = '<option value="">시/군/구 선택...</option>';
+          dongSel.innerHTML = '<option value="">행정동 선택...</option>';
+        }
 
-        sidoSel.innerHTML = '<option value="">시/도 선택...</option>';
-        if (sigunguSel) sigunguSel.innerHTML = '<option value="">시/군/구 선택...</option>';
-        if (dongSel) dongSel.innerHTML = '<option value="">행정동 선택...</option>';
+        // Reset origin address dropdowns
+        const orgSido = document.getElementById('m-org-sido');
+        const orgSigungu = document.getElementById('m-org-sigungu');
+        const orgDong = document.getElementById('m-org-dong');
+        if (orgSido) {
+          orgSido.innerHTML = '<option value="">시/도 선택...</option>';
+          orgSigungu.innerHTML = '<option value="">시/군/구 선택...</option>';
+          orgDong.innerHTML = '<option value="">행정동 선택...</option>';
+        }
 
         if (!origin || !RATE_DATA[origin]) return;
 
-        // Populate 시/도 filtered by selected port
+        // Populate origin address 시/도 (areas belonging to this port)
         const sidos = Object.keys(RATE_DATA[origin]).sort();
         sidos.forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s; opt.textContent = s;
-          sidoSel.appendChild(opt);
+          if (orgSido) {
+            const o1 = document.createElement('option'); o1.value = s; o1.textContent = s; orgSido.appendChild(o1);
+          }
+          if (sidoSel) {
+            const o2 = document.createElement('option'); o2.value = s; o2.textContent = s; sidoSel.appendChild(o2);
+          }
         });
+        recalculateManual();
+      }
+
+      // Origin address cascades
+      function onManualOrgSidoChange() {
+        const origin = state.m_origin;
+        const sido = document.getElementById('m-org-sido').value;
+        state.m_orgSido = sido || null;
+        state.m_orgSigungu = null; state.m_orgDong = null;
+
+        const orgSigungu = document.getElementById('m-org-sigungu');
+        const orgDong = document.getElementById('m-org-dong');
+        orgSigungu.innerHTML = '<option value="">시/군/구 선택...</option>';
+        orgDong.innerHTML = '<option value="">행정동 선택...</option>';
+
+        if (!origin || !sido || !RATE_DATA[origin]?.[sido]) return;
+        Object.keys(RATE_DATA[origin][sido]).sort().forEach(sg => {
+          const o = document.createElement('option'); o.value = sg; o.textContent = sg; orgSigungu.appendChild(o);
+        });
+      }
+
+      function onManualOrgSigunguChange() {
+        const origin = state.m_origin;
+        const sido = state.m_orgSido;
+        const sigungu = document.getElementById('m-org-sigungu').value;
+        state.m_orgSigungu = sigungu || null;
+        state.m_orgDong = null;
+
+        const orgDong = document.getElementById('m-org-dong');
+        orgDong.innerHTML = '<option value="">행정동 선택...</option>';
+
+        if (!origin || !sido || !sigungu || !RATE_DATA[origin]?.[sido]?.[sigungu]) return;
+        Object.keys(RATE_DATA[origin][sido][sigungu]).sort().forEach(d => {
+          const o = document.createElement('option'); o.value = d; o.textContent = d; orgDong.appendChild(o);
+        });
+      }
+
+      function onManualOrgDongChange() {
+        state.m_orgDong = document.getElementById('m-org-dong').value || null;
+        // Sync the origin values so rate calc uses these as destination lookup
+        state.m_sido = state.m_orgSido;
+        state.m_sigungu = state.m_orgSigungu;
+        state.m_dong = state.m_orgDong;
         recalculateManual();
       }
 
