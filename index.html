@@ -1517,33 +1517,36 @@
     }
 
     .range-sidebar-item {
-      padding: 8px 16px;
+      padding: 4px 12px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       display: grid;
-      grid-template-columns: 60px 50px 1fr;
+      grid-template-columns: 55px 45px 1fr;
       align-items: center;
-      gap: 10px;
-      transition: background 0.2s;
+      gap: 8px;
+      transition: background 0.1s;
     }
 
     .range-sidebar-item:hover {
-      background: rgba(0, 200, 255, 0.05);
+      background: rgba(0, 200, 255, 0.08);
     }
 
     .sidebar-price {
       color: var(--orange-light);
       font-weight: 700;
-      font-size: 0.85rem;
+      font-size: 0.78rem;
+      text-align: right;
+      margin-right: 5px;
     }
 
     .sidebar-dist {
       color: var(--text-muted);
-      font-size: 0.7rem;
+      font-size: 0.62rem;
+      text-align: center;
     }
 
     .sidebar-area {
       color: var(--text-primary);
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -1613,7 +1616,10 @@
         <!-- Range Sidebar -->
         <div id="range-sidebar" class="range-sidebar">
           <div class="range-sidebar-header">
-            운임 랭킹 <span>고단가 순</span>
+            <div>운임 랭킹 <span id="range-polygon-count"
+                style="margin-left:6px;background:rgba(255,130,0,0.2);color:var(--orange-light);padding:1px 6px;border-radius:10px;font-size:0.65rem;border:1px solid rgba(255,130,0,0.3)">0</span>
+            </div>
+            <span>고단가 순</span>
           </div>
           <div id="range-sidebar-list" class="range-sidebar-list"></div>
         </div>
@@ -4962,24 +4968,28 @@
 
             if (dist <= radiusM) {
               const sigunguCode = code.substring(0, 5);
-              const sigunguName = state.sigunguCodeToName[sigunguCode] || "지역";
+              const sigunguName = state.sigunguCodeToName[sigunguCode] || "";
               const rawDongName = f.properties.name || f.properties.Name || '';
 
               // Find matching dong in RateData
-              const sidos = portData;
-              for (const sName in sidos) {
-                const sigungus = sidos[sName];
+              const sigungus = portData[sidoName];
+              if (sigungus) {
                 for (const sgName in sigungus) {
+                  // If we have a sigungu match or if we are searching all sigungus in the sido
                   const dongs = sigungus[sgName];
                   const matchedDong = matchDongName(rawDongName, Object.keys(dongs));
                   if (matchedDong) {
                     const rateInfo = dongs[matchedDong];
                     const baseRate = rateInfo[1];
-                    const { grandTotal } = calcTotal(baseRate, state.selectedSurcharges, 0, 0, '40FT', false, 0, 'port', 'none', 'no', false);
+                    const cSize = state.containerSize || '40FT';
+                    const { grandTotal } = calcTotal(baseRate, state.selectedSurcharges, 0, 0, cSize, false, 0, 'port', 'none', 'no', false);
+
+                    const shortSido = sidoName.substring(0, 2);
+                    const fullAreaName = `${shortSido} ${sgName} ${matchedDong}`;
 
                     const html = `
                          <div class="range-label-inner">
-                           <span class="range-label-name">${sgName} ${matchedDong}</span>
+                           <span class="range-label-name">${matchedDong}</span>
                            <span style="opacity:0.6">:</span>
                            <span class="range-label-price">${(grandTotal / 10000).toFixed(0)}만</span>
                          </div>`;
@@ -4998,7 +5008,7 @@
                     analysisResults.push({
                       price: grandTotal,
                       dist: dist / 1000,
-                      name: `${sgName} ${matchedDong}`
+                      name: fullAreaName
                     });
                     return; // Exit nested loops once found
                   }
@@ -5056,23 +5066,26 @@
 
       function updateRangeSidebar(results) {
         const sidebarList = document.getElementById('range-sidebar-list');
+        const countBadge = document.getElementById('range-polygon-count');
         if (!sidebarList) return;
+
+        if (countBadge) countBadge.textContent = results.length;
 
         // Sort by price (descending), then distance
         results.sort((a, b) => b.price - a.price || a.dist - b.dist);
 
-        // Take top 50
-        const top50 = results.slice(0, 50);
+        // Take top 100 (increased for more detail)
+        const topN = results.slice(0, 100);
 
-        sidebarList.innerHTML = top50.map(item => `
+        sidebarList.innerHTML = topN.map(item => `
           <div class="range-sidebar-item">
             <div class="sidebar-price">${(item.price / 10000).toFixed(0)}만</div>
             <div class="sidebar-dist">${item.dist.toFixed(1)}k</div>
-            <div class="sidebar-area">${item.name}</div>
+            <div class="sidebar-area" title="${item.name}">${item.name}</div>
           </div>
         `).join('');
 
-        if (top50.length === 0) {
+        if (topN.length === 0) {
           sidebarList.innerHTML = '<div style="padding:40px 20px;text-align:center;color:var(--text-muted);font-size:0.75rem">반경 내 데이터가 없습니다.</div>';
         }
       }
