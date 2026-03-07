@@ -1598,88 +1598,43 @@
           <!-- Left Column -->
           <div>
             <div class="card">
-              <div class="card-title">출발지</div>
-              <!-- Origin mode toggle -->
-              <div style="display:flex;gap:6px;margin-bottom:10px">
-                <button id="m-origin-mode-port" onclick="setManualOriginMode('port')"
-                  style="flex:1;padding:5px 0;font-size:0.75rem;font-weight:700;border-radius:6px;border:2px solid var(--orange);background:var(--orange);color:#fff;cursor:pointer;font-family:inherit;transition:all 0.2s">
-                  항만 선택
-                </button>
-                <button id="m-origin-mode-addr" onclick="setManualOriginMode('addr')"
-                  style="flex:1;padding:5px 0;font-size:0.75rem;font-weight:700;border-radius:6px;border:2px solid rgba(0,200,255,0.4);background:transparent;color:var(--cyan);cursor:pointer;font-family:inherit;transition:all 0.2s">
-                  주소 선택
-                </button>
-              </div>
-              <!-- Port mode -->
-              <div id="m-origin-port-section">
-                <div class="form-group">
-                  <select id="m-origin" onchange="onManualOriginChange()">
-                    <option value="">항만 선택...</option>
-                  </select>
-                </div>
-              </div>
-              <!-- Address mode -->
-              <div id="m-origin-addr-section" style="display:none">
-                <div class="form-group">
-                  <label>시/도</label>
-                  <select id="m-origin-sido" onchange="onManualOriginSidoChange()">
-                    <option value="">시/도 선택...</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>시/군/구</label>
-                  <select id="m-origin-sigungu" onchange="onManualOriginSigunguChange()">
-                    <option value="">시/군/구 선택...</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>행정동</label>
-                  <select id="m-origin-dong" onchange="onManualOriginDongChange()">
-                    <option value="">행정동 선택...</option>
-                  </select>
-                </div>
-              </div>
-            </div>
+              <div class="card-title">출발지 → 도착지 선택</div>
 
-            <div class="card">
-              <div class="card-title">도착지</div>
-              <!-- Port mode destination (address-based) -->
-              <div id="m-dest-addr-section">
-                <div class="form-group">
-                  <label>시/도</label>
-                  <select id="m-sido" onchange="onManualSidoChange()">
-                    <option value="">시/도 선택...</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>시/군/구</label>
-                  <select id="m-sigungu" onchange="onManualSigunguChange()">
-                    <option value="">시/군/구 선택...</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>행정동</label>
-                  <select id="m-dong" onchange="onManualDongChange()">
-                    <option value="">행정동 선택...</option>
-                  </select>
-                </div>
-                <div id="m-oneway-wrap" style="display:none">
-                  <label class="checkbox-item" onclick="toggleOnewayManual(event)">
-                    <input type="checkbox" id="m-oneway-cb">
-                    <div class="checkbox-box" id="m-oneway-cb-box"></div>
-                    <span class="checkbox-label">편도 운임 적용 <span class="oneway-badge">의왕ICD 경유</span></span>
-                  </label>
-                </div>
+              <div class="form-group">
+                <label>출발 항만</label>
+                <select id="m-origin" onchange="onManualOriginChange()">
+                  <option value="">항만 선택...</option>
+                </select>
               </div>
-              <!-- Address mode destination (port-based) -->
-              <div id="m-dest-port-section" style="display:none">
-                <div class="form-group">
-                  <label>도착 항만</label>
-                  <select id="m-dest-port" onchange="onManualDestPortChange()">
-                    <option value="">항만 선택...</option>
-                  </select>
-                </div>
-                <div id="m-dest-port-info" style="font-size:0.77rem;color:var(--text-muted);margin-top:4px"></div>
+
+              <div style="height:1px;background:rgba(255,130,0,0.15);margin:10px 0"></div>
+              <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:6px;letter-spacing:0.04em">도착지 (행정동)
+              </div>
+
+              <div class="form-group">
+                <label>시/도</label>
+                <select id="m-sido" onchange="onManualSidoChange()">
+                  <option value="">항만을 먼저 선택하세요</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>시/군/구</label>
+                <select id="m-sigungu" onchange="onManualSigunguChange()">
+                  <option value="">시/도를 먼저 선택하세요</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>행정동</label>
+                <select id="m-dong" onchange="onManualDongChange()">
+                  <option value="">시/군/구를 먼저 선택하세요</option>
+                </select>
+              </div>
+              <div id="m-oneway-wrap" style="display:none">
+                <label class="checkbox-item" onclick="toggleOnewayManual(event)">
+                  <input type="checkbox" id="m-oneway-cb">
+                  <div class="checkbox-box" id="m-oneway-cb-box"></div>
+                  <span class="checkbox-label">편도 운임 적용 <span class="oneway-badge">의왕ICD 경유</span></span>
+                </label>
               </div>
             </div>
 
