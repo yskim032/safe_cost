@@ -928,6 +928,20 @@
       }
     }
 
+    @keyframes glowTeal {
+
+      0%,
+      100% {
+        box-shadow: 0 0 6px 1px rgba(0, 212, 170, 0.5), 0 0 12px 2px rgba(0, 212, 170, 0.3);
+        border-color: rgba(0, 212, 170, 0.6);
+      }
+
+      50% {
+        box-shadow: 0 0 14px 3px rgba(0, 212, 170, 0.95), 0 0 28px 6px rgba(0, 212, 170, 0.6);
+        border-color: rgba(0, 212, 170, 1.0);
+      }
+    }
+
     @keyframes pinGlowCyan {
 
       0%,
@@ -993,6 +1007,58 @@
     }
 
     .leaflet-tooltip.msc-tooltip-origin::before {
+      display: none !important;
+    }
+
+    /* Waypoint address labels (25% / 50% / 75%) */
+    .leaflet-tooltip.msc-tooltip-wp0 {
+      background: rgba(0, 10, 30, 0.92) !important;
+      border: 1.5px solid rgba(255, 130, 0, 0.7) !important;
+      color: #FF8200 !important;
+      font-family: 'Noto Sans KR', sans-serif !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      border-radius: 6px !important;
+      padding: 3px 8px !important;
+      white-space: nowrap !important;
+      animation: glowOrange 2s ease-in-out infinite !important;
+    }
+
+    .leaflet-tooltip.msc-tooltip-wp0::before {
+      display: none !important;
+    }
+
+    .leaflet-tooltip.msc-tooltip-wp1 {
+      background: rgba(0, 10, 30, 0.92) !important;
+      border: 1.5px solid rgba(0, 200, 255, 0.7) !important;
+      color: #00C8FF !important;
+      font-family: 'Noto Sans KR', sans-serif !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      border-radius: 6px !important;
+      padding: 3px 8px !important;
+      white-space: nowrap !important;
+      animation: glowCyan 2s ease-in-out infinite !important;
+    }
+
+    .leaflet-tooltip.msc-tooltip-wp1::before {
+      display: none !important;
+    }
+
+    .leaflet-tooltip.msc-tooltip-wp2 {
+      background: rgba(0, 10, 30, 0.92) !important;
+      border: 1.5px solid rgba(0, 212, 170, 0.7) !important;
+      color: #00D4AA !important;
+      font-family: 'Noto Sans KR', sans-serif !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      border-radius: 6px !important;
+      padding: 3px 8px !important;
+      white-space: nowrap !important;
+      animation: glowTeal 2s ease-in-out infinite !important;
+    }
+
+    .leaflet-tooltip.msc-tooltip-wp2::before {
       display: none !important;
     }
 
@@ -1371,6 +1437,471 @@
       font-size: 1.4rem;
     }
 
+    /* Navigation Route Button */
+    .nav-route-btn {
+      position: absolute;
+      top: 165px;
+      left: 20px;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: rgba(0, 20, 40, 0.85);
+      border: 2px solid var(--orange);
+      box-shadow: 0 0 15px rgba(255, 130, 0, 0.4), inset 0 0 10px rgba(255, 130, 0, 0.2);
+      color: var(--orange);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 1000;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+
+    .nav-route-btn:hover {
+      background: rgba(60, 20, 0, 0.9);
+      box-shadow: 0 0 25px rgba(255, 130, 0, 0.7), inset 0 0 15px rgba(255, 130, 0, 0.4);
+      transform: scale(1.05);
+    }
+
+    .nav-route-btn.active {
+      background: var(--orange);
+      color: white;
+      box-shadow: 0 0 35px var(--orange);
+    }
+
+    /* Navigation Analysis Panel */
+    .nav-analysis-panel {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 320px;
+      max-height: 100%;
+      background: rgba(0, 10, 30, 0.96);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: none;
+      border-left: 1px solid rgba(255, 130, 0, 0.3);
+      border-bottom: 1px solid rgba(255, 130, 0, 0.25);
+      border-radius: 0 0 0 14px;
+      z-index: 1100;
+      display: none;
+      flex-direction: column;
+      box-shadow: -4px 4px 24px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 130, 0, 0.08);
+      animation: navPanelIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+
+    .nav-analysis-panel.visible {
+      display: flex;
+    }
+
+    @keyframes navPanelIn {
+      from {
+        opacity: 0;
+        transform: translateX(20px) scale(0.97);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+    }
+
+    .nav-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px 9px;
+      border-bottom: 1px solid rgba(255, 130, 0, 0.2);
+      background: rgba(255, 130, 0, 0.08);
+      flex-shrink: 0;
+    }
+
+    .nav-panel-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--orange-light);
+      letter-spacing: 0.05em;
+    }
+
+    .nav-panel-close {
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+
+    .nav-panel-close:hover {
+      color: var(--orange);
+      background: rgba(255, 130, 0, 0.15);
+    }
+
+    .nav-panel-body {
+      overflow-y: auto;
+      flex: 1;
+      padding: 8px 10px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 130, 0, 0.3) transparent;
+    }
+
+    .nav-section {
+      margin-bottom: 7px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .nav-section-title {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 5px 10px 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .nav-section-content {
+      padding: 7px 10px;
+    }
+
+    .nav-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2.5px 0;
+      font-size: 0.77rem;
+    }
+
+    .nav-row-label {
+      color: var(--text-secondary);
+    }
+
+    .nav-row-value {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .nav-row-value.hl {
+      color: var(--orange-light);
+    }
+
+    .nav-row-value.ok {
+      color: var(--success);
+    }
+
+    .nav-row-value.danger {
+      color: var(--danger);
+    }
+
+    .nav-time-inputs {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .nav-time-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 130, 0, 0.25);
+      border-radius: 5px;
+      padding: 2px 6px;
+      color: var(--text-primary);
+      font-size: 0.73rem;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s;
+      min-width: 0;
+      height: 22px;
+      line-height: 1.4;
+    }
+
+    .nav-time-input:focus {
+      border-color: var(--orange);
+    }
+
+    /* Compact input grid for fuel/toll */
+    .nav-input-grid {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      gap: 4px 6px;
+      margin-bottom: 2px;
+    }
+
+    .nav-input-label {
+      font-size: 0.74rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .nav-input-field {
+      width: 68px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 130, 0, 0.25);
+      border-radius: 5px;
+      padding: 2px 6px;
+      color: var(--text-primary);
+      font-size: 0.74rem;
+      font-family: 'Inter', sans-serif;
+      text-align: right;
+      outline: none;
+      transition: border-color 0.2s;
+      line-height: 1.4;
+      height: 22px;
+    }
+
+    .nav-input-field:focus {
+      border-color: var(--orange);
+    }
+
+    .nav-input-unit {
+      font-size: 0.66rem;
+      color: var(--text-muted);
+      min-width: 26px;
+    }
+
+    .nav-divider {
+      height: 1px;
+      background: rgba(255, 130, 0, 0.12);
+      margin: 4px 0;
+    }
+
+    .nav-total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0 2px;
+      border-top: 1px solid rgba(255, 130, 0, 0.25);
+      margin-top: 4px;
+    }
+
+    .nav-total-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .nav-total-value {
+      font-size: 1rem;
+      font-weight: 900;
+      color: var(--orange);
+    }
+
+    .nav-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+
+    .nav-chip.night {
+      background: rgba(0, 200, 255, 0.15);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 200, 255, 0.3);
+    }
+
+    .nav-chip.day {
+      background: rgba(0, 212, 170, 0.12);
+      color: var(--success);
+      border: 1px solid rgba(0, 212, 170, 0.3);
+    }
+
+    .nav-status-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px;
+      background: rgba(255, 130, 0, 0.05);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .nav-spin {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 130, 0, 0.3);
+      border-top-color: var(--orange);
+      border-radius: 50%;
+      animation: navSpin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes navSpin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .nav-gas-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-gas-item:last-child {
+      border-bottom: none;
+    }
+
+    .nav-gas-rank {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(255, 130, 0, 0.2);
+      color: var(--orange-light);
+      font-size: 0.68rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .nav-gas-name {
+      font-size: 0.79rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 1px;
+    }
+
+    .nav-gas-meta {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .nav-gas-price {
+      font-size: 0.83rem;
+      font-weight: 700;
+      color: var(--success);
+      white-space: nowrap;
+    }
+
+    .nav-opinet-link {
+      display: block;
+      text-align: center;
+      font-size: 0.74rem;
+      color: var(--cyan);
+      text-decoration: none;
+      margin-top: 8px;
+      padding: 6px;
+      border: 1px solid rgba(0, 200, 255, 0.2);
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .nav-opinet-link:hover {
+      background: rgba(0, 200, 255, 0.08);
+    }
+
+    /* Waypoint Gas Station Markers on Map */
+    .nav-wp-wrap {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    .nav-wp-center {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-wp-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid;
+      opacity: 0;
+      width: 46px;
+      height: 46px;
+      animation: navWpRing 2.4s ease-out infinite;
+      pointer-events: none;
+    }
+
+    .nav-wp-ring-2 {
+      animation-delay: 0.8s;
+    }
+
+    .nav-wp-ring-3 {
+      animation-delay: 1.6s;
+    }
+
+    @keyframes navWpRing {
+      0% {
+        width: 46px;
+        height: 46px;
+        opacity: 0.85;
+        transform: translate(-50%, -50%) scale(1);
+        top: 50%;
+        left: 50%;
+      }
+
+      100% {
+        width: 110px;
+        height: 110px;
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1);
+        top: 50%;
+        left: 50%;
+      }
+    }
+
+    .nav-wp-dot {
+      position: relative;
+      z-index: 2;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: rgba(0, 8, 24, 0.92);
+      border: 3px solid;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: .55rem;
+      font-weight: 800;
+      line-height: 1.1;
+      cursor: pointer;
+      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
+    }
+
+    .nav-wp-price-tag {
+      position: absolute;
+      top: calc(100% + 5px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 8, 24, 0.92);
+      border: 1px solid;
+      border-radius: 8px;
+      padding: 2px 8px;
+      font-size: .63rem;
+      font-weight: 700;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 3;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
     /* LED Pulsing Circle Border */
     .range-glow-circle {
       stroke-dasharray: 10 5;
@@ -1571,6 +2102,263 @@
     .num {
       font-variant-numeric: tabular-nums;
     }
+
+    /* ============ DIESEL PRICE TICKER ============ */
+    #diesel-ticker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0, 200, 80, 0.08);
+      border: 1px solid rgba(0, 200, 80, 0.22);
+      border-radius: 20px;
+      padding: 4px 14px 4px 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    #diesel-ticker:hover {
+      background: rgba(0, 200, 80, 0.15);
+      border-color: rgba(0, 200, 80, 0.45);
+    }
+
+    .diesel-label {
+      font-size: 0.63rem;
+      font-weight: 700;
+      color: rgba(0, 230, 100, 0.75);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .diesel-price-main {
+      font-size: 0.9rem;
+      font-weight: 900;
+      color: #00E664;
+      letter-spacing: -0.01em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .diesel-diff {
+      font-size: 0.62rem;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 8px;
+    }
+
+    .diesel-diff.up {
+      color: #FF6060;
+      background: rgba(255, 70, 70, 0.15);
+    }
+
+    .diesel-diff.down {
+      color: #00D4AA;
+      background: rgba(0, 212, 170, 0.15);
+    }
+
+    .diesel-diff.flat {
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .diesel-spin {
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(0, 200, 80, 0.25);
+      border-top-color: #00E664;
+      border-radius: 50%;
+      animation: navSpin 0.7s linear infinite;
+    }
+
+    /* Diesel Detail Popup */
+    #diesel-popup {
+      position: fixed;
+      top: calc(var(--header-h) + 8px);
+      right: 16px;
+      width: 340px;
+      background: rgba(0, 12, 30, 0.98);
+      border: 1px solid rgba(0, 200, 80, 0.3);
+      border-radius: 14px;
+      padding: 16px;
+      z-index: 2000;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 200, 80, 0.08);
+      display: none;
+      animation: popupIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #diesel-popup.open {
+      display: block;
+    }
+
+    @keyframes popupIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.97);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .dp-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(0, 200, 80, 0.15);
+    }
+
+    .dp-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #00E664;
+      letter-spacing: 0.03em;
+    }
+
+    .dp-close {
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 1rem;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+
+    .dp-close:hover {
+      color: var(--orange);
+      background: rgba(255, 130, 0, 0.15);
+    }
+
+    .dp-national {
+      background: rgba(0, 200, 80, 0.07);
+      border: 1px solid rgba(0, 200, 80, 0.18);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+    }
+
+    .dp-national-label {
+      font-size: 0.65rem;
+      color: rgba(0, 200, 80, 0.7);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+    }
+
+    .dp-national-price {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #00E664;
+      letter-spacing: -0.02em;
+    }
+
+    .dp-national-diff {
+      font-size: 0.72rem;
+      margin-left: 8px;
+      font-weight: 700;
+    }
+
+    .dp-section-title {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .dp-region-select {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      background: rgba(0, 30, 70, 0.8);
+      border: 1px solid rgba(0, 200, 80, 0.25);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      outline: none;
+    }
+
+    .dp-region-select:focus {
+      border-color: #00E664;
+    }
+
+    .dp-station-list {
+      max-height: 200px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 200, 80, 0.3) transparent;
+    }
+
+    .dp-station-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: start;
+      gap: 6px;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .dp-station-item:last-child {
+      border-bottom: none;
+    }
+
+    .dp-station-rank {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(0, 200, 80, 0.15);
+      color: #00E664;
+      font-size: 0.6rem;
+      font-weight: 800;
+      flex-shrink: 0;
+      margin-right: 5px;
+    }
+
+    .dp-station-name {
+      font-size: 0.77rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .dp-station-addr {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .dp-station-price {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: #00E664;
+    }
+
+    .dp-updated {
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      margin-top: 10px;
+      text-align: right;
+    }
+
+    .dp-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      padding: 12px 0;
+      text-align: center;
+    }
   </style>
 </head>
 
@@ -1594,10 +2382,62 @@
     <div class="header-logo" style="font-size: 1.7rem; font-weight: bold;">MSC KOREA</div>
     <div class="header-divider"></div>
     <div class="header-title" style="font-size: 1.7rem; font-weight: bold;">2026 안전운임 계산기 by The End - YS</div>
+
+    <!-- Diesel Price Ticker -->
+    <div id="diesel-ticker" onclick="toggleDieselPopup()" title="오피넷 경유 최저가 클릭하여 상세보기">
+      <span class="diesel-label">⛽ 경유</span>
+      <span class="diesel-price-main" id="diesel-price-display"><span class="diesel-spin"></span></span>
+      <span class="diesel-diff flat" id="diesel-diff-display">...</span>
+    </div>
+
     <div class="mode-tabs">
       <button class="mode-tab active" id="tab-map" onclick="switchMode('map')">지도 기반</button>
       <button class="mode-tab" id="tab-manual" onclick="switchMode('manual')">직접 입력</button>
     </div>
+  </div>
+
+  <!-- Diesel Price Popup -->
+  <div id="diesel-popup">
+    <div class="dp-header">
+      <div class="dp-title">⛽ 오피넷 실시간 경유가</div>
+      <div class="dp-close" onclick="toggleDieselPopup()">✕</div>
+    </div>
+    <!-- National average -->
+    <div class="dp-national">
+      <div class="dp-national-label">전국 주유소 평균가 (자동차용경유)</div>
+      <div style="display:flex;align-items:baseline;gap:6px">
+        <span class="dp-national-price" id="dp-national-price">—</span>
+        <span style="font-size:0.85rem;color:rgba(0,200,80,0.7);font-weight:600">원/L</span>
+        <span class="dp-national-diff" id="dp-national-diff"></span>
+      </div>
+    </div>
+    <!-- Region selector -->
+    <div class="dp-section-title">지역별 최저가 주유소 (경유)</div>
+    <select class="dp-region-select" id="dp-region-sel" onchange="onDpRegionChange()">
+      <option value="">── 지역 선택 ──</option>
+      <option value="">전국</option>
+      <option value="01">서울</option>
+      <option value="02">경기</option>
+      <option value="03">강원</option>
+      <option value="04">충북</option>
+      <option value="05">충남</option>
+      <option value="06">전북</option>
+      <option value="07">전남</option>
+      <option value="08">경북</option>
+      <option value="09">경남</option>
+      <option value="10">부산</option>
+      <option value="11">제주</option>
+      <option value="14">대구</option>
+      <option value="15">인천</option>
+      <option value="16">광주</option>
+      <option value="17">대전</option>
+      <option value="18">울산</option>
+      <option value="19">세종</option>
+    </select>
+    <div class="dp-station-list" id="dp-station-list">
+      <div class="dp-status">지역을 선택하면 최저가 주유소를 표시합니다.</div>
+    </div>
+    <div class="dp-updated" id="dp-updated"></div>
   </div>
 
   <!-- App Container -->
@@ -1613,6 +2453,32 @@
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
+        </div>
+        <!-- Navigation Route Button -->
+        <div id="nav-route-btn" class="nav-route-btn" title="경로 안내 분석 (실제 도로 경로)">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="5" cy="18" r="3"></circle>
+            <circle cx="19" cy="6" r="3"></circle>
+            <path d="M12 18H8.5a3.5 3.5 0 0 1 0-7h7a3.5 3.5 0 0 0 0-7H12"></path>
+          </svg>
+        </div>
+        <!-- Navigation Analysis Panel -->
+        <div id="nav-analysis-panel" class="nav-analysis-panel">
+          <div class="nav-panel-header">
+            <div class="nav-panel-title">🗺&nbsp; 경로 안내 분석</div>
+            <div class="nav-panel-close" onclick="closeNavPanel()">✕</div>
+          </div>
+          <div class="nav-panel-body" id="nav-panel-body">
+            <div class="nav-status-box">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              출발지와 도착지를 먼저 선택하세요.
+            </div>
+          </div>
         </div>
         <!-- Range Radius Indicator -->
         <div id="range-radius-indicator" class="range-radius-indicator">0 km</div>
@@ -3223,6 +4089,8 @@
       const SUBMUNICIPAL_URL = 'https://raw.githubusercontent.com/southkorea/southkorea-maps/master/kostat/2012/json/submunicipalities-geo-simple.json';
 
       async function drillDownToEupmyeondong(sigunguCode, sigunguName, sidoKey, map, mode) {
+        // Lock when nav route is active
+        if (navState && navState.active) return;
         clearSubmunicipalLayer();
         // Hide the parent (sigungu-level) layer now — dong polygons take over
         if (mode === 'origin') clearOriginAreaLayer();
@@ -3476,6 +4344,11 @@
       }
 
       function selectOrigin(name, coords, marker) {
+        // Lock when nav route is active
+        if (navState && navState.active) {
+          showToast('경로 안내 중에는 출발지를 변경할 수 없습니다. 경로 버튼을 끄고 변경하세요.', 'info');
+          return;
+        }
         // Only allow in 'origin' mode
         if (state.mapSelectMode !== 'origin') {
           showToast(`도착지 선택 중입니다. 출발지 변경은 '🚢 출발지 선택' 버튼을 눌러 모드를 전환하세요.`, 'info');
@@ -3731,6 +4604,11 @@
       }
 
       function onProvinceClick(provinceName, layerEl, map) {
+        // Lock when nav route is active
+        if (navState && navState.active) {
+          showToast('경로 안내 중에는 도착지를 변경할 수 없습니다. 경로 버튼을 끄고 변경하세요.', 'info');
+          return;
+        }
         // Must be in destination mode
         if (state.mapSelectMode !== 'dest') {
           if (!state.selectedOrigin) {
@@ -4491,6 +5369,12 @@
         const group = document.getElementById('route-group');
         if (!group || !state.map) return;
         group.innerHTML = '';
+        // If nav real route is active, hide bezier (route drawn by Leaflet)
+        if (navState && navState.active && navState.routeLayers.length > 0) {
+          group.style.opacity = '0';
+          return;
+        }
+        group.style.opacity = '';
         if (!state.originLatLng || !state.destLatLng) return;
 
         const map = state.map;
@@ -5101,6 +5985,797 @@
       }
 
       // ============================================================
+      // NAVIGATION ROUTE ANALYSIS
+      // ============================================================
+      const PORT_ADDRESSES = {
+        '부산신항': '경상남도 창원시 진해구 용원동 부산신항',
+        '부산북항': '부산광역시 중구 중앙동4가 부산항 북항',
+        '인천신항': '인천광역시 연수구 송도동 인천신항',
+        '인천항': '인천광역시 중구 항동7가 인천항',
+        '인천국제여객터미널': '인천광역시 중구 항동7가 인천국제여객터미널',
+        '광양항': '전라남도 광양시 황길동 광양항',
+        '평택항': '경기도 평택시 포승읍 평택항',
+        '울산신항': '울산광역시 남구 매암동 울산신항',
+        '울산항': '울산광역시 중구 서동 울산항',
+        '포항항': '경상북도 포항시 북구 항구동 포항항',
+        '군산항': '전라북도 군산시 장미동 군산항',
+        '마산항': '경상남도 창원시 마산합포구 산호동 마산항',
+        '대산항': '충청남도 서산시 대산읍 대산항',
+        '의왕ICD': '경기도 의왕시 월암동 의왕ICD'
+      };
+
+      const navState = {
+        active: false,
+        routeLayers: [],
+        waypointMarkers: [],
+        waypointPrices: [null, null, null],
+        routeData: null,
+        departureDate: '',
+        departureTime: '',
+        fuelEfficiency: 4.0,
+        fuelPrice: 1750,
+        tollRate: 65
+      };
+
+      function openNavPanel() {
+        const panel = document.getElementById('nav-analysis-panel');
+        const btn = document.getElementById('nav-route-btn');
+        if (!panel || !btn) return;
+        panel.classList.add('visible');
+        btn.classList.add('active');
+        navState.active = true;
+        runNavAnalysis();
+      }
+
+      function closeNavPanel() {
+        const panel = document.getElementById('nav-analysis-panel');
+        const btn = document.getElementById('nav-route-btn');
+        if (!panel || !btn) return;
+        panel.classList.remove('visible');
+        btn.classList.remove('active');
+        navState.active = false;
+        clearNavRoute();
+        // restore SVG bezier opacity and redraw
+        const grp = document.getElementById('route-group');
+        if (grp) grp.style.opacity = '';
+        updateRouteSVG();
+      }
+
+      function clearNavRoute() {
+        navState.routeLayers.forEach(l => { try { state.map.removeLayer(l); } catch (e) { } });
+        navState.routeLayers = [];
+        navState.waypointMarkers.forEach(l => { try { state.map.removeLayer(l); } catch (e) { } });
+        navState.waypointMarkers = [];
+        navState.waypointPrices = [null, null, null];
+      }
+
+      async function runNavAnalysis() {
+        const body = document.getElementById('nav-panel-body');
+        if (!body) return;
+
+        if (!state.originLatLng || !state.destLatLng) {
+          body.innerHTML = `<div class="nav-status-box">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            출발지와 도착지를 먼저 선택하세요.
+          </div>`;
+          return;
+        }
+
+        body.innerHTML = `<div class="nav-status-box"><div class="nav-spin"></div>실제 도로 경로를 불러오는 중...</div>`;
+
+        try {
+          const route = await fetchOSRMRoute(state.originLatLng, state.destLatLng);
+          navState.routeData = route;
+          drawNavRealRoute(route);
+          renderNavPanel(route);
+        } catch (e) {
+          body.innerHTML = `<div class="nav-status-box">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            경로 불러오기 실패. 네트워크를 확인하세요.
+          </div>`;
+        }
+      }
+
+      async function fetchOSRMRoute(originLL, destLL) {
+        const url = `https://router.project-osrm.org/route/v1/driving/` +
+          `${originLL.lng},${originLL.lat};${destLL.lng},${destLL.lat}` +
+          `?overview=full&geometries=geojson`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('OSRM error');
+        const data = await res.json();
+        if (!data.routes || !data.routes.length) throw new Error('No route');
+        return data.routes[0];
+      }
+
+      function drawNavRealRoute(route) {
+        clearNavRoute();
+        const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+
+        // Dim SVG bezier
+        const grp = document.getElementById('route-group');
+        if (grp) grp.style.opacity = '0';
+
+        // Glow layer
+        const glow = L.polyline(coords, {
+          color: 'rgba(255,130,0,0.18)',
+          weight: 16,
+          interactive: false,
+          smoothFactor: 1
+        }).addTo(state.map);
+
+        // Base road line
+        const base = L.polyline(coords, {
+          color: '#FF8200',
+          weight: 5,
+          opacity: 0.9,
+          interactive: false,
+          smoothFactor: 1
+        }).addTo(state.map);
+
+        // Animated dash overlay
+        const dash = L.polyline(coords, {
+          color: '#FFE080',
+          weight: 2,
+          opacity: 0.8,
+          interactive: false,
+          dashArray: '12 10',
+          className: 'nav-animated-dash'
+        }).addTo(state.map);
+
+        // White core line
+        const core = L.polyline(coords, {
+          color: '#ffffff',
+          weight: 1.2,
+          opacity: 0.35,
+          interactive: false,
+          smoothFactor: 1
+        }).addTo(state.map);
+
+        navState.routeLayers = [glow, base, dash, core];
+
+        // Inject animation CSS once
+        if (!document.getElementById('nav-dash-style')) {
+          const s = document.createElement('style');
+          s.id = 'nav-dash-style';
+          s.textContent = `
+            .nav-animated-dash { animation: navDashMove 1.0s linear infinite; }
+            @keyframes navDashMove { to { stroke-dashoffset: -44; } }
+          `;
+          document.head.appendChild(s);
+        }
+
+        // Add 3 waypoint markers at 25%, 50%, 75%
+        const wpColors = ['#FF8200', '#00C8FF', '#00D4AA'];
+        const wpPcts = [25, 50, 75];
+        wpPcts.forEach((pct, i) => {
+          const idx = Math.floor((pct / 100) * (coords.length - 1));
+          const [lat, lng] = coords[idx];
+          navState.waypointMarkers.push(
+            navAddWaypointMarker(lat, lng, pct, wpColors[i], i, '⛽')
+          );
+        });
+
+        // Fit map to route
+        state.map.fitBounds(L.latLngBounds(coords), { padding: [60, 60] });
+      }
+
+      function navFormatDuration(sec) {
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        return h > 0 ? `${h}시간 ${m}분` : `${m}분`;
+      }
+
+      function navGetArrival(timeStr, durationSec) {
+        if (!timeStr) return null;
+        const [h, m] = timeStr.split(':').map(Number);
+        const totalMin = h * 60 + m + Math.round(durationSec / 60);
+        const ah = Math.floor(totalMin / 60) % 24;
+        const am = totalMin % 60;
+        const days = Math.floor(totalMin / 1440);
+        return { time: `${String(ah).padStart(2, '0')}:${String(am).padStart(2, '0')}`, days };
+      }
+
+      function navIsNight(timeStr, durationSec) {
+        if (!timeStr) return false;
+        const [h, m] = timeStr.split(':').map(Number);
+        const startMin = h * 60 + m;
+        const endMin = startMin + Math.round(durationSec / 60);
+        for (let t = startMin; t <= endMin; t += 20) {
+          const dm = t % 1440;
+          if (dm < 360 || dm >= 1320) return true;
+        }
+        return false;
+      }
+
+      function renderNavPanel(route) {
+        const body = document.getElementById('nav-panel-body');
+        if (!body) return;
+
+        const distKm = route.distance / 1000;
+        const distStr = distKm.toFixed(1);
+        const dur = route.duration;
+
+        // Init departure time to now
+        if (!navState.departureTime) {
+          const now = new Date();
+          navState.departureDate = now.toISOString().slice(0, 10);
+          navState.departureTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        }
+
+        const arrival = navGetArrival(navState.departureTime, dur);
+        const isNight = navIsNight(navState.departureTime, dur);
+
+        const fuelL = (distKm / navState.fuelEfficiency).toFixed(1);
+        const fuelCost = Math.round(parseFloat(fuelL) * navState.fuelPrice);
+        const tollCost = Math.round(distKm * navState.tollRate);
+
+        // Read current calculated rate from result panel
+        let safetyRate = 0;
+        const totalEl = document.getElementById('result-total');
+        if (totalEl && totalEl.textContent.trim() !== '—') {
+          safetyRate = parseInt(totalEl.textContent.replace(/[^0-9]/g, '')) || 0;
+        }
+        const nightAmt = isNight ? Math.round(safetyRate * 0.20) : 0;
+        const grandTotal = safetyRate + nightAmt + fuelCost + tollCost;
+
+        const originName = state.selectedOrigin || '출발지';
+        const originAddr = PORT_ADDRESSES[originName] || originName;
+        const dest = [state.selectedSido, state.selectedSigungu, state.selectedDong].filter(Boolean).join(' ') || '도착지';
+
+        body.innerHTML = `
+          <!-- 총비용 (최상단) -->
+          <div class="nav-section" style="border-color:rgba(255,130,0,0.35);margin-bottom:7px">
+            <div class="nav-section-title" style="color:var(--orange-light)">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>총 예상 비용
+            </div>
+            <div class="nav-section-content">
+              <div class="nav-row"><span class="nav-row-label">안전운임</span><span class="nav-row-value" id="nav-safety-disp">${safetyRate > 0 ? safetyRate.toLocaleString() + ' 원' : '<span style="color:var(--text-muted);font-size:.7rem">먼저 운임 계산하세요</span>'}</span></div>
+              ${isNight ? `<div class="nav-row"><span class="nav-row-label">야간 할증 (+20%)</span><span class="nav-row-value danger">+${nightAmt.toLocaleString()} 원</span></div>` : ''}
+              <div class="nav-row"><span class="nav-row-label">연료비</span><span class="nav-row-value" id="nav-total-fuel">+${fuelCost.toLocaleString()} 원</span></div>
+              <div class="nav-row"><span class="nav-row-label">통행료 (추정)</span><span class="nav-row-value">+${tollCost.toLocaleString()} 원</span></div>
+              <div class="nav-total-row">
+                <span class="nav-total-label">합계</span>
+                <span class="nav-total-value" id="nav-grand-total">${safetyRate > 0 ? grandTotal.toLocaleString() + ' 원' : '—'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 경로 -->
+          <div class="nav-section">
+            <div class="nav-section-title">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12h18M12 3l9 9-9 9"/></svg>실제 도로 경로
+            </div>
+            <div class="nav-section-content">
+              <div class="nav-row"><span class="nav-row-label" style="white-space:nowrap;margin-right:8px">출발</span><span class="nav-row-value" style="font-size:.71rem;text-align:right;line-height:1.3;color:var(--text-secondary)">${originAddr}</span></div>
+              <div class="nav-row"><span class="nav-row-label" style="white-space:nowrap;margin-right:8px">도착</span><span class="nav-row-value" style="font-size:.71rem;text-align:right;line-height:1.3;color:var(--text-secondary)">${dest}</span></div>
+              <div class="nav-divider"></div>
+              <div class="nav-row"><span class="nav-row-label">실제 거리</span><span class="nav-row-value hl">${distStr} km</span></div>
+              <div class="nav-row"><span class="nav-row-label">예상 운행시간</span><span class="nav-row-value hl">${navFormatDuration(dur)}</span></div>
+            </div>
+          </div>
+
+          <!-- 출발 시간 -->
+          <div class="nav-section">
+            <div class="nav-section-title">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>출발 시간 설정
+            </div>
+            <div class="nav-section-content">
+              <div class="nav-time-inputs">
+                <input type="date" id="nav-date" class="nav-time-input" value="${navState.departureDate}" onchange="navOnTimeChange()">
+                <input type="time" id="nav-time" class="nav-time-input" value="${navState.departureTime}" onchange="navOnTimeChange()">
+              </div>
+              <div style="margin-top:6px">
+                <div class="nav-row"><span class="nav-row-label">도착 예정</span><span class="nav-row-value hl">${arrival ? arrival.time + (arrival.days ? ` (+${arrival.days}일)` : '') : '—'}</span></div>
+                <div class="nav-row"><span class="nav-row-label">야간 할증</span><span class="nav-chip ${isNight ? 'night' : 'day'}">${isNight ? '🌙 야간 적용' : '☀️ 주간'}</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 연료비 -->
+          <div class="nav-section">
+            <div class="nav-section-title">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 22V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v15"/><rect x="1" y="18" width="14" height="4"/></svg>연료비 계산
+            </div>
+            <div class="nav-section-content">
+              <div class="nav-input-grid">
+                <span class="nav-input-label">연비 (트레일러)</span>
+                <input type="number" id="nav-eff" class="nav-input-field" value="${navState.fuelEfficiency}" step="0.1" min="1" max="20" onchange="navOnFuelChange()">
+                <span class="nav-input-unit">km/L</span>
+                <span class="nav-input-label">경유 단가</span>
+                <input type="number" id="nav-price" class="nav-input-field" value="${navState.fuelPrice}" step="10" min="500" onchange="navOnFuelChange()">
+                <span class="nav-input-unit">원/L</span>
+              </div>
+              <div class="nav-divider"></div>
+              <div class="nav-row"><span class="nav-row-label">예상 소모 연료</span><span class="nav-row-value" id="nav-fuel-l">${fuelL} L</span></div>
+              <div class="nav-row"><span class="nav-row-label">예상 연료비</span><span class="nav-row-value hl" id="nav-fuel-cost">${fuelCost.toLocaleString()} 원</span></div>
+            </div>
+          </div>
+
+          <!-- 통행료 -->
+          <div class="nav-section">
+            <div class="nav-section-title">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="3" width="22" height="18" rx="2"/><line x1="1" y1="9" x2="23" y2="9"/></svg>고속도로 통행료 추정
+            </div>
+            <div class="nav-section-content">
+              <div class="nav-input-grid">
+                <span class="nav-input-label">단가 (km당)</span>
+                <input type="number" id="nav-toll" class="nav-input-field" value="${navState.tollRate}" step="5" min="0" onchange="navOnTollChange()">
+                <span class="nav-input-unit">원/km</span>
+              </div>
+              <div class="nav-row" style="margin-top:3px"><span class="nav-row-label">예상 통행료</span><span class="nav-row-value hl" id="nav-toll-cost">${tollCost.toLocaleString()} 원</span></div>
+              <div style="font-size:.66rem;color:var(--text-muted);margin-top:2px">* 실제 → <a href="https://www.ex.co.kr" target="_blank" style="color:var(--cyan);text-decoration:none">한국도로공사</a></div>
+            </div>
+          </div>
+
+          <!-- 주유소 (지도 마커 연동) -->
+          <div class="nav-section">
+            <div class="nav-section-title">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 22V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v15"/></svg>경로 구간별 최저가 주유소
+              <span style="margin-left:auto;font-size:.6rem;color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">지도 마커 참고</span>
+            </div>
+            <div class="nav-section-content" id="nav-gas-list">
+              <div style="font-size:.74rem;color:var(--text-secondary);text-align:center;padding:6px 0">
+                <span class="nav-spin" style="display:inline-block;margin-right:6px;vertical-align:middle"></span>경로 구간 주유소 검색 중...
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Async: load gas stations
+        navLoadGasStations(route);
+      }
+
+      function navOnTimeChange() {
+        const d = document.getElementById('nav-date');
+        const t = document.getElementById('nav-time');
+        if (d) navState.departureDate = d.value;
+        if (t) navState.departureTime = t.value;
+        if (navState.routeData) renderNavPanel(navState.routeData);
+      }
+
+      function navOnFuelChange() {
+        const eff = parseFloat(document.getElementById('nav-eff')?.value) || 4.0;
+        const price = parseInt(document.getElementById('nav-price')?.value) || 1750;
+        navState.fuelEfficiency = eff;
+        navState.fuelPrice = price;
+        if (navState.routeData) {
+          const km = navState.routeData.distance / 1000;
+          const litr = (km / eff).toFixed(1);
+          const cost = Math.round(parseFloat(litr) * price);
+          const lEl = document.getElementById('nav-fuel-l');
+          const cEl = document.getElementById('nav-fuel-cost');
+          const tFuel = document.getElementById('nav-total-fuel');
+          if (lEl) lEl.textContent = litr + ' L';
+          if (cEl) cEl.textContent = cost.toLocaleString() + ' 원';
+          if (tFuel) tFuel.textContent = '+' + cost.toLocaleString() + ' 원';
+          navUpdateGrandTotal();
+        }
+      }
+
+      function navUpdateGrandTotal() {
+        const gt = document.getElementById('nav-grand-total');
+        if (!gt || !navState.routeData) return;
+        const safetyEl = document.getElementById('result-total');
+        const safety = safetyEl && safetyEl.textContent.trim() !== '—'
+          ? parseInt(safetyEl.textContent.replace(/[^0-9]/g, '')) || 0 : 0;
+        const km = navState.routeData.distance / 1000;
+        const fuel = Math.round((km / navState.fuelEfficiency) * navState.fuelPrice);
+        const toll = Math.round(km * navState.tollRate);
+        const total = safety + fuel + toll;
+        gt.textContent = safety > 0 ? total.toLocaleString() + ' 원' : '—';
+      }
+
+      function navOnTollChange() {
+        const rate = parseInt(document.getElementById('nav-toll')?.value) || 65;
+        navState.tollRate = rate;
+        if (navState.routeData) {
+          const km = navState.routeData.distance / 1000;
+          const toll = Math.round(km * rate);
+          const el = document.getElementById('nav-toll-cost');
+          if (el) el.textContent = toll.toLocaleString() + ' 원';
+        }
+      }
+
+      // Add animated waypoint marker at given lat/lng
+      function navAddWaypointMarker(lat, lng, pct, color, idx, label) {
+        const icon = L.divIcon({
+          className: 'nav-wp-wrap',
+          html: `<div class="nav-wp-center">
+            <div class="nav-wp-ring nav-wp-ring-1" style="border-color:${color}"></div>
+            <div class="nav-wp-ring nav-wp-ring-2" style="border-color:${color}"></div>
+            <div class="nav-wp-ring nav-wp-ring-3" style="border-color:${color}"></div>
+            <div class="nav-wp-dot" style="border-color:${color};color:${color}" id="nav-wp-dot-${idx}">
+              <span style="font-size:.83rem;font-weight:900">${pct}%</span>
+            </div>
+            <div class="nav-wp-price-tag" style="border-color:${color};color:${color}" id="nav-wp-tag-${idx}">로딩 중</div>
+          </div>`,
+          iconSize: [80, 90],
+          iconAnchor: [40, 45]
+        });
+        const directions = ['right', 'left', 'right'];
+        const offsets = [[42, 0], [-42, 0], [42, 0]];
+        const marker = L.marker([lat, lng], { icon, interactive: false, zIndexOffset: 500 }).addTo(state.map);
+        marker.bindTooltip(
+          `<span style="font-family:'Noto Sans KR',sans-serif"><span style="opacity:0.7;font-size:9px;margin-right:3px">${pct}%</span>조회 중…</span>`,
+          {
+            permanent: true,
+            direction: directions[idx],
+            className: `msc-tooltip-wp${idx}`,
+            offset: offsets[idx]
+          }
+        ).openTooltip();
+        return marker;
+      }
+
+      // Update waypoint label on map
+      function navUpdateWaypointLabel(idx, text, priceNum) {
+        const tag = document.getElementById(`nav-wp-tag-${idx}`);
+        if (tag) tag.textContent = text;
+        // Keep % text large — do NOT shrink it when price arrives
+      }
+
+      // Reverse geocode a point to Korean admin district via Nominatim
+      async function navReverseGeocode(lat, lng) {
+        try {
+          const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=ko`;
+          const res = await Promise.race([
+            fetch(url, { headers: { 'Accept-Language': 'ko' } }),
+            new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
+          ]);
+          const data = await res.json();
+          const a = data.address || {};
+          // Build Korean-style address: 시도 시군구 읍면동
+          const parts = [
+            a.province || a.state || a['ISO3166-2-lvl4'] || '',
+            a.city || a.county || a.town || '',
+            a.suburb || a.quarter || a.neighbourhood || a.village || ''
+          ].map(s => s.replace(/^Republic of Korea,?\s*/i, '').trim()).filter(Boolean);
+          return parts.join(' ') || data.display_name?.split(',').slice(0, 3).reverse().join(' ') || '주소 불명';
+        } catch (e) { return '주소 조회 실패'; }
+      }
+
+      // ── WGS84 → KATEC coordinate conversion ─────────────────────────────
+      function wgs84ToKatec(lon, lat) {
+        const toRad = Math.PI / 180;
+        const wA = 6378137.0, wB = 6356752.3142;
+        const wE2 = 1 - (wB / wA) * (wB / wA);
+        // WGS84 geodetic → ECEF
+        const phi = lat * toRad, lam = lon * toRad;
+        const sP = Math.sin(phi), cP = Math.cos(phi);
+        const sL = Math.sin(lam), cL = Math.cos(lam);
+        const Nw = wA / Math.sqrt(1 - wE2 * sP * sP);
+        const X = Nw * cP * cL, Y = Nw * cP * sL, Z = Nw * (1 - wE2) * sP;
+        // 3-param Helmert WGS84 → Bessel 1841  (towgs84 = -146, 507, 687)
+        const X2 = X + 146, Y2 = Y - 507, Z2 = Z - 687;
+        // Bessel 1841 parameters
+        const bA = 6377397.155, bB = 6356078.963;
+        const bE2 = 1 - (bB / bA) * (bB / bA);
+        // ECEF → geodetic on Bessel (Bowring iteration)
+        const p = Math.sqrt(X2 * X2 + Y2 * Y2);
+        let bLat = Math.atan2(Z2, p * (1 - bE2));
+        for (let i = 0; i < 10; i++) {
+          const s = Math.sin(bLat), Nb = bA / Math.sqrt(1 - bE2 * s * s);
+          bLat = Math.atan2(Z2 + bE2 * Nb * s, p);
+        }
+        const bLon = Math.atan2(Y2, X2);
+        // Transverse Mercator (KATEC)
+        const k0 = 0.9999, E0 = 400000, N0 = 600000;
+        const lat0 = 38 * toRad, lon0 = 128 * toRad;
+        const bE4 = bE2 * bE2, bE6 = bE2 * bE4;
+        const c0 = 1 - bE2 / 4 - 3 * bE4 / 64 - 5 * bE6 / 256;
+        const c2 = 3 / 8 * (bE2 + bE4 / 4 + 15 * bE6 / 128);
+        const c4 = 15 / 256 * (bE4 + 3 * bE6 / 4);
+        const c6 = 35 * bE6 / 3072;
+        const mArc = a => bA * (c0 * a - c2 * Math.sin(2 * a) + c4 * Math.sin(4 * a) - c6 * Math.sin(6 * a));
+        const M = mArc(bLat), M0 = mArc(lat0);
+        const sB = Math.sin(bLat), cB = Math.cos(bLat), tB = Math.tan(bLat);
+        const Nb = bA / Math.sqrt(1 - bE2 * sB * sB);
+        const T = tB * tB, C = (bE2 / (1 - bE2)) * cB * cB;
+        const Av = cB * (bLon - lon0);
+        const ep2 = bE2 / (1 - bE2);
+        const kx = k0 * Nb * (Av + (1 - T + C) * Math.pow(Av, 3) / 6 + (5 - 18 * T + T * T + 72 * C - 58 * ep2) * Math.pow(Av, 5) / 120) + E0;
+        const ky = k0 * (M - M0 + Nb * tB * (Av * Av / 2 + (5 - T + 9 * C + 4 * C * C) * Math.pow(Av, 4) / 24 + (61 - 58 * T + T * T + 600 * C - 330 * ep2) * Math.pow(Av, 6) / 720)) + N0;
+        return { x: Math.round(kx * 100) / 100, y: Math.round(ky * 100) / 100 };
+      }
+
+      // ── Generic CORS-proxy fetch helper ─────────────────────────────────
+      async function navFetchWithProxy(url, timeout = 7000) {
+        const proxies = [
+          `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+          `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+          url
+        ];
+        for (const pu of proxies) {
+          try {
+            const res = await Promise.race([
+              fetch(pu),
+              new Promise((_, r) => setTimeout(() => r(new Error('to')), timeout))
+            ]);
+            if (!res.ok) continue;
+            const data = await res.json();
+            if (data) return data;
+          } catch (e) { /* try next */ }
+        }
+        return null;
+      }
+
+      // ── Opinet sido code cache (API 5) ───────────────────────────────────
+      let _opinetSidoCodes = null;
+      async function opinetGetSidoCode(addrStr) {
+        if (!_opinetSidoCodes) {
+          const data = await navFetchWithProxy(
+            'https://www.opinet.co.kr/api/areaCode.do?code=F260309379&out=json', 5000
+          );
+          if (data?.RESULT?.OIL) {
+            _opinetSidoCodes = {};
+            data.RESULT.OIL.forEach(o => { _opinetSidoCodes[o.AREA_NM] = o.AREA_CD; });
+          }
+        }
+        if (!_opinetSidoCodes) return null;
+        for (const [name, code] of Object.entries(_opinetSidoCodes)) {
+          if (addrStr.includes(name)) return code;
+        }
+        return null;
+      }
+
+      // ── API 3: aroundAll (KATEC coords, diesel D047, radius ≤5000m) ──────
+      async function navFetchOpinet(lng, lat) {
+        const { x, y } = wgs84ToKatec(lng, lat);
+        const url = `https://www.opinet.co.kr/api/aroundAll.do?code=F260309379&out=json&x=${x}&y=${y}&radius=5000&prodcd=D047&sort=1`;
+        const data = await navFetchWithProxy(url);
+        if (data?.RESULT?.OIL?.length > 0) return data;
+        return null;
+      }
+
+      // ── API 2: lowTop10 fallback (regional top cheapest diesel) ──────────
+      async function navFetchOpinetByArea(addrStr) {
+        const sidoCd = await opinetGetSidoCode(addrStr);
+        if (!sidoCd) return null;
+        const url = `https://www.opinet.co.kr/api/lowTop10.do?code=F260309379&out=json&prodcd=D047&area=${sidoCd}&cnt=5`;
+        const data = await navFetchWithProxy(url);
+        if (data?.RESULT?.OIL?.length > 0) return data;
+        return null;
+      }
+
+      // ============================================================
+      // DIESEL PRICE WIDGET (오피넷 실시간 경유가)
+      // ============================================================
+      const OPINET_KEY = 'F260309379';
+      let dieselPopupOpen = false;
+      let _dpNationalData = null;
+
+      function toggleDieselPopup() {
+        const popup = document.getElementById('diesel-popup');
+        if (!popup) return;
+        dieselPopupOpen = !dieselPopupOpen;
+        if (dieselPopupOpen) {
+          popup.classList.add('open');
+          // If national data is cached, show it immediately; otherwise fetch
+          if (_dpNationalData) {
+            renderDpNational(_dpNationalData);
+          }
+        } else {
+          popup.classList.remove('open');
+        }
+      }
+
+      // Close popup on outside click
+      document.addEventListener('click', function (e) {
+        const popup = document.getElementById('diesel-popup');
+        const ticker = document.getElementById('diesel-ticker');
+        if (!popup || !ticker) return;
+        if (!popup.contains(e.target) && !ticker.contains(e.target)) {
+          dieselPopupOpen = false;
+          popup.classList.remove('open');
+        }
+      }, true);
+
+      async function fetchDieselPrice() {
+        const priceEl = document.getElementById('diesel-price-display');
+        const diffEl = document.getElementById('diesel-diff-display');
+        try {
+          const url = `https://www.opinet.co.kr/api/avgAllPrice.do?code=${OPINET_KEY}&out=json`;
+          const data = await navFetchWithProxy(url, 8000);
+          const oils = data?.RESULT?.OIL || [];
+          const diesel = oils.find(o => o.PRODCD === 'D047');
+          if (!diesel) throw new Error('no data');
+
+          _dpNationalData = diesel;
+
+          const price = parseFloat(diesel.PRICE);
+          const diff = parseFloat(diesel.DIFF);
+
+          if (priceEl) priceEl.textContent = price.toLocaleString('ko-KR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + '원';
+          if (diffEl) {
+            if (diff > 0) {
+              diffEl.textContent = `▲${diff.toFixed(2)}`;
+              diffEl.className = 'diesel-diff up';
+            } else if (diff < 0) {
+              diffEl.textContent = `▼${Math.abs(diff).toFixed(2)}`;
+              diffEl.className = 'diesel-diff down';
+            } else {
+              diffEl.textContent = '─';
+              diffEl.className = 'diesel-diff flat';
+            }
+          }
+          // Auto-update nav fuel price if nothing custom set
+          if (navState && !navState.customFuelPrice) {
+            navState.fuelPrice = Math.round(price);
+          }
+        } catch (e) {
+          if (priceEl) priceEl.textContent = '—';
+          if (diffEl) { diffEl.textContent = 'N/A'; diffEl.className = 'diesel-diff flat'; }
+        }
+      }
+
+      function renderDpNational(diesel) {
+        const price = parseFloat(diesel.PRICE);
+        const diff = parseFloat(diesel.DIFF);
+        const el = document.getElementById('dp-national-price');
+        const de = document.getElementById('dp-national-diff');
+        if (el) el.textContent = price.toLocaleString('ko-KR');
+        if (de) {
+          if (diff > 0) { de.textContent = `▲ ${diff.toFixed(2)}`; de.style.color = '#FF6060'; }
+          else if (diff < 0) { de.textContent = `▼ ${Math.abs(diff).toFixed(2)}`; de.style.color = '#00D4AA'; }
+          else { de.textContent = '변동없음'; de.style.color = 'var(--text-muted)'; }
+        }
+        const dt = document.getElementById('dp-updated');
+        const tradeDate = diesel.TRADE_DT;
+        if (dt && tradeDate) {
+          dt.textContent = `기준일: ${tradeDate.slice(0, 4)}-${tradeDate.slice(4, 6)}-${tradeDate.slice(6, 8)} 오피넷 제공`;
+        }
+      }
+
+      async function onDpRegionChange() {
+        const sel = document.getElementById('dp-region-sel');
+        const list = document.getElementById('dp-station-list');
+        if (!sel || !list) return;
+        const area = sel.value;
+        const label = sel.options[sel.selectedIndex].text;
+
+        list.innerHTML = `<div class="dp-status"><span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(0,200,80,0.3);border-top-color:#00E664;border-radius:50%;animation:navSpin 0.7s linear infinite;vertical-align:middle;margin-right:8px"></span>${label} 최저가 주유소 조회 중...</div>`;
+
+        try {
+          const url = `https://www.opinet.co.kr/api/lowTop10.do?code=${OPINET_KEY}&out=json&prodcd=D047${area ? '&area=' + area : ''}&cnt=10`;
+          const data = await navFetchWithProxy(url, 8000);
+          const stations = data?.RESULT?.OIL || [];
+
+          if (stations.length === 0) {
+            list.innerHTML = '<div class="dp-status">조회된 주유소가 없습니다.</div>';
+            return;
+          }
+
+          // Also update national if we don't have it
+          if (!_dpNationalData) fetchDieselPrice();
+          else renderDpNational(_dpNationalData);
+
+          const BRAND_MAP = {
+            SKE: 'SK에너지', GSC: 'GS칼텍스', HDO: '현대오일뱅크', SOL: 'S-OIL',
+            RTE: '자영알뜰', RTX: '고속도로알뜰', NHO: '농협알뜰', ETC: '자가상표',
+            E1G: 'E1', SKG: 'SK가스'
+          };
+
+          list.innerHTML = stations.map((s, i) => {
+            const price = parseInt(s.PRICE);
+            const brand = BRAND_MAP[s.POLL_DIV_CD] || s.POLL_DIV_CD;
+            const addr = s.NEW_ADR || s.VAN_ADR || '';
+            const rank1 = i === 0;
+            return `
+              <div class="dp-station-item">
+                <div>
+                  <div style="display:flex;align-items:center;gap:3px;margin-bottom:2px">
+                    <span class="dp-station-rank" style="${rank1 ? 'background:rgba(255,200,0,0.2);color:#FFD700' : ''}">${i + 1}</span>
+                    <span class="dp-station-name">${s.OS_NM}</span>
+                    <span style="font-size:.6rem;background:rgba(255,255,255,0.08);color:var(--text-muted);padding:1px 5px;border-radius:8px;margin-left:3px">${brand}</span>
+                  </div>
+                  <div class="dp-station-addr">${addr}</div>
+                </div>
+                <div class="dp-station-price" style="${rank1 ? 'color:#FFD700' : ''}">${price.toLocaleString()}<span style="font-size:.6rem;font-weight:400;color:var(--text-muted);margin-left:2px">원</span></div>
+              </div>`;
+          }).join('');
+
+          const dt = document.getElementById('dp-updated');
+          if (dt) dt.textContent = `${label} 기준 · 오피넷 제공 · ${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 업데이트`;
+
+        } catch (err) {
+          list.innerHTML = '<div class="dp-status">데이터를 불러오지 못했습니다 (CORS 차단 가능).</div>';
+        }
+      }
+
+      async function navLoadGasStations(route) {
+        const listEl = document.getElementById('nav-gas-list');
+        if (!listEl) return;
+
+        const coords = route.geometry.coordinates;
+        const wpColors = ['#FF8200', '#00C8FF', '#00D4AA'];
+        const pcts = [0.25, 0.5, 0.75];
+        const points = pcts.map((p, i) => {
+          const ci = Math.floor(p * (coords.length - 1));
+          return { lat: coords[ci][1], lng: coords[ci][0], pct: Math.round(p * 100), color: wpColors[i], idx: i };
+        });
+
+        const results = [];
+
+        for (const pt of points) {
+          // 1. Geocode + aroundAll concurrent; fallback to lowTop10 if needed
+          const [addrStr, aroundData] = await Promise.all([
+            navReverseGeocode(pt.lat, pt.lng),
+            navFetchOpinet(pt.lng, pt.lat)
+          ]);
+          const oilData = aroundData || await navFetchOpinetByArea(addrStr);
+
+          // Parse Opinet data
+          const oilList = oilData?.RESULT?.OIL || [];
+          const prices = oilList.map(s => parseInt(s.PRICE)).filter(p => p > 0 && p < 5000);
+          const minPrice = prices.length > 0 ? Math.min(...prices) : null;
+          const avgPrice = prices.length > 0 ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : null;
+          const cheapest = oilList.find(s => parseInt(s.PRICE) === minPrice);
+
+          results.push({
+            ...pt,
+            addr: addrStr,
+            minPrice,
+            avgPrice,
+            cheapestName: cheapest?.OS_NM || null,
+            cheapestAddr: cheapest ? (cheapest.NEW_ADR || cheapest.VAN_ADR || '') : '',
+            count: prices.length
+          });
+
+          // Update map marker label
+          const labelText = minPrice ? `최저 ${minPrice.toLocaleString()}원` : '조회중';
+          navUpdateWaypointLabel(pt.idx, labelText, minPrice);
+
+          // Update address tooltip on waypoint circle
+          const wpMarker = navState.waypointMarkers[pt.idx];
+          if (wpMarker && wpMarker.getTooltip && wpMarker.getTooltip()) {
+            const shortAddr = addrStr.split(' ').slice(0, 3).join(' ');
+            const priceLine = minPrice
+              ? `<div style="margin-top:3px;font-size:11px;font-weight:800;color:#00E664;letter-spacing:-.01em">최저 ${minPrice.toLocaleString()}원</div>`
+              : '';
+            wpMarker.setTooltipContent(
+              `<span style="font-family:'Noto Sans KR',sans-serif;display:block">` +
+              `<span style="opacity:0.7;font-size:9px;margin-right:3px">${pt.pct}%</span>` +
+              `<span style="font-size:12px;font-weight:700">${shortAddr}</span>` +
+              priceLine +
+              `</span>`
+            );
+          }
+
+          // Store price
+          navState.waypointPrices[pt.idx] = minPrice;
+        }
+
+        // Apply cheapest overall price to fuel input
+        const validPrices = navState.waypointPrices.filter(p => p && p > 0);
+        if (validPrices.length > 0) {
+          const cheapest = Math.min(...validPrices);
+          navState.fuelPrice = cheapest;
+          const priceEl = document.getElementById('nav-price');
+          if (priceEl) { priceEl.value = cheapest; navOnFuelChange(); }
+        }
+
+        // Build panel
+        const hasPrices = results.some(r => r.minPrice);
+        listEl.innerHTML = results.map((r, i) => `
+          <div style="padding:6px 0;${i < results.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.06)' : ''}">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(${i === 0 ? '255,130,0' : i === 1 ? '0,200,255' : '0,212,170'},0.2);color:${wpColors[i]};font-size:.65rem;font-weight:800;flex-shrink:0">${r.pct}%</span>
+              <span style="font-size:.74rem;font-weight:600;color:var(--text-primary);line-height:1.2">${r.addr}</span>
+            </div>
+            ${r.minPrice ? `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;padding:4px 6px;background:rgba(255,255,255,0.03);border-radius:6px;border:1px solid rgba(255,255,255,0.06)">
+              <div style="font-size:.66rem;color:var(--text-muted)">최저 단가</div>
+              <div style="font-size:.66rem;color:var(--text-muted)">평균 단가 (${r.count}개소)</div>
+              <div style="font-size:.78rem;font-weight:800;color:${wpColors[i]}">${r.minPrice.toLocaleString()} 원</div>
+              <div style="font-size:.78rem;font-weight:600;color:var(--text-secondary)">${r.avgPrice.toLocaleString()} 원</div>
+              ${r.cheapestName ? `<div style="font-size:.65rem;color:var(--text-muted);grid-column:1/-1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">⛽ ${r.cheapestName}${r.cheapestAddr ? ' · ' + r.cheapestAddr : ''}</div>` : ''}
+            </div>` : `
+            <div style="font-size:.7rem;color:var(--text-muted);padding:3px 0">주유소 정보 없음 (CORS 차단)</div>`}
+          </div>`).join('') +
+          `<a href="https://www.opinet.co.kr/user/main/mainView.do" target="_blank" class="nav-opinet-link" style="margin-top:6px">⛽ 오피넷에서 전체 최저가 확인 →</a>`;
+      }
+
+      // ============================================================
       // INITIALIZATION
       // ============================================================
       async function init() {
@@ -5113,6 +6788,11 @@
 
         // Populate initial address dropdowns (all sidos)
         populateInitialManualSidos();
+
+        // Fetch diesel price from Opinet
+        fetchDieselPrice();
+        // Refresh every 10 minutes
+        setInterval(fetchDieselPrice, 10 * 60 * 1000);
 
         // Init map
         const map = initMap();
@@ -5127,6 +6807,15 @@
             e.preventDefault();
             e.stopPropagation();
             stopRangeExplorer();
+          });
+        }
+
+        // Nav Route Button listener
+        const navBtn = document.getElementById('nav-route-btn');
+        if (navBtn) {
+          navBtn.addEventListener('click', () => {
+            if (navState.active) closeNavPanel();
+            else openNavPanel();
           });
         }
 
