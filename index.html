@@ -4,9 +4,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
   <title>MSC KOREA | 안전운임 계산기 2026</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
@@ -14,7 +11,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="rate_data.js?v=20260310_01"></script>
+  <script src="rate_data.js"></script>
   <style>
     :root {
       --navy: #003A79;
@@ -6782,7 +6779,6 @@
       // INITIALIZATION
       // ============================================================
       async function init() {
-        console.log("%c[MSC KOREA]%c 2026 안전운임 계산기 로드됨 (최근 업데이트: 2026-03-10 00:52)", "color:#FF8200;font-weight:bold", "color:#00C8FF");
         // Build surcharge checkboxes for both modes
         buildSurchargeCheckboxes('');       // map mode (ids: surcharge-*)
         buildSurchargeCheckboxes('m-');     // manual mode (ids: m-surcharge-*)
