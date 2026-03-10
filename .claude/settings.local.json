@@ -7,7 +7,11 @@
       "Bash(ls:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:github.com)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(grep:*)",
+      "Bash(node:*)",
+      "Bash(del:*)",
+      "WebFetch(domain:www.opinet.co.kr)"
     ]
   }
 }
