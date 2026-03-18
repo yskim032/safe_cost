@@ -2710,19 +2710,16 @@
     .dp-map-tooltip.rank1 {
       background: var(--orange) !important;
       border-color: var(--orange-dark) !important;
-      color: white !important;
     }
 
     .dp-map-tooltip.rank2 {
       background: var(--success) !important;
       border-color: var(--navy) !important;
-      color: white !important;
     }
 
     .dp-map-tooltip.rank3 {
       background: var(--cyan) !important;
       border-color: var(--navy) !important;
-      color: white !important;
     }
 
     .dp-map-tooltip div {
@@ -3033,8 +3030,12 @@
           <!-- Origin Selection -->
           <div class="card" id="origin-card">
             <div class="card-title">출발지 (항만)</div>
+            <div class="form-group" style="margin-bottom:8px">
+              <input type="text" id="origin-addr-input" placeholder="항만 시군구 동 입력 (예: 부산신항 강서구 가덕도동)"
+                style="font-size:0.75rem; padding:6px 10px;" onkeyup="handleAddrKey(event, 'origin')">
+            </div>
             <div id="origin-display" style="font-size:0.82rem;padding:4px 0">
-              <span style="color:var(--text-muted);font-size:0.8rem">지도에서 해당 항만을 선택하세요.</span>
+              <span style="color:var(--text-muted);font-size:0.8rem">지도에서 항만을 선택하거나 위 주소를 입력하세요.</span>
             </div>
             <div style="font-size:0.82rem;color:var(--text-muted);padding:6px 0">
               지도에서 항만을 선택후 지역을 선택하세요.
@@ -3044,10 +3045,14 @@
           <!-- Destination Selection (Map Mode) -->
           <div class="card" id="dest-card">
             <div class="card-title-dest">도착지 (행정동)</div>
+            <div class="form-group" style="margin-bottom:8px">
+              <input type="text" id="dest-addr-input" placeholder="시도 시군구 동 입력 (예: 서울특별시 종로구 사직동)"
+                style="font-size:0.75rem; padding:6px 10px;" onkeyup="handleAddrKey(event, 'dest')">
+            </div>
             <div id="selection-breadcrumb" class="selection-path" style="display:none"></div>
             <div id="dong-list-container">
               <div style="font-size:0.82rem;color:var(--text-muted);padding:6px 0">
-                지도에서 지역을 클릭하여 선택하세요.
+                지도에서 클릭하거나 위 주소를 입력하여 선택하세요.
               </div>
             </div>
           </div>
@@ -4546,6 +4551,123 @@
             state.geoJsonLayer.eachLayer(l => {
               l.setStyle({ fillColor: '#003A79', fillOpacity: 0.18, color: '#FF8200', weight: 1.0, opacity: 0.6 });
             });
+          }
+        }
+      }
+
+      // ============================================================
+      // ADDRESS INPUT SEARCH LOGIC
+      // ============================================================
+      async function handleAddrKey(e, mode) {
+        if (e.key === 'Enter') {
+          const input = e.target.value.trim();
+          if (!input) return;
+          await resolveSearchAddr(input, mode);
+        }
+      }
+
+      async function resolveSearchAddr(input, mode) {
+        const parts = input.split(/[\s,\.]+/).filter(Boolean);
+        if (parts.length < 1) return;
+        const isOrigin = (mode === 'origin');
+        const map = state.map;
+
+        if (isOrigin) {
+          const portNameInput = parts[0];
+          const matchedPort = Object.keys(PORT_COORDS).find(k => k === portNameInput || k.includes(portNameInput) || portNameInput.includes(k));
+          if (!matchedPort) { showToast(`항만 '${portNameInput}'을 찾을 수 없습니다.`, 'error'); return; }
+          const marker = state.portMarkers[matchedPort];
+          const coords = PORT_COORDS[matchedPort];
+          selectOrigin(matchedPort, coords, marker);
+          if (parts.length >= 2) {
+            if (!state.municipalGeo) await new Promise(res => { const i = setInterval(() => { if (state.municipalGeo) { clearInterval(i); res(); } }, 100); });
+            const sigunguInput = parts[1];
+            const provCode = PROVINCE_CODES[PORT_LOCATION[matchedPort].sido];
+            const matchedSigunguFeature = state.municipalGeo.features.find(f => {
+              const code = f.properties.code || f.properties.Code || '';
+              if (!code.startsWith(provCode)) return false;
+              const name = f.properties.name || f.properties.Name || '';
+              return name.includes(sigunguInput) || sigunguInput.includes(name.replace(/(시|군|구)$/, ''));
+            });
+            if (matchedSigunguFeature) {
+              const sCode = String(matchedSigunguFeature.properties.code);
+              const sName = matchedSigunguFeature.properties.name || matchedSigunguFeature.properties.Name;
+              const sSido = PORT_LOCATION[matchedPort].sido;
+              await drillDownToEupmyeondong(sCode, sName, sSido, map, 'origin');
+              if (parts.length >= 3) {
+                if (!state.submunicipalGeo) await new Promise(res => { const i = setInterval(() => { if (state.submunicipalGeo) { clearInterval(i); res(); } }, 100); });
+                const dongInput = parts[2];
+                const dongFeature = state.submunicipalGeo.features.find(f => {
+                  if (!String(f.properties.code || '').startsWith(sCode)) return false;
+                  const name = f.properties.name || f.properties.Name || '';
+                  return name.includes(dongInput) || dongInput.includes(name);
+                });
+                if (dongFeature) {
+                  const dName = dongFeature.properties.name || dongFeature.properties.Name;
+                  const lyr = L.geoJSON(dongFeature);
+                  const latlng = lyr.getBounds().getCenter();
+                  state.originLatLng = latlng;
+                  pinDongPolygon(dongFeature, 'origin', dName, sName);
+                  clearAllSelectionLayers();
+                  setOriginMarker(latlng, sSido, `${sName} ${dName}`);
+                  updateRouteSVG();
+                  showToast(`출발지 확정: ${sName} ${dName}`, 'success');
+                  setMapMode('dest');
+                }
+              }
+            }
+          }
+        } else {
+          if (!state.selectedOrigin) { showToast('먼저 출발지(항만)를 선택하세요.', 'error'); return; }
+          setMapMode('dest');
+          const sidoInput = parts[0];
+          const rateOriginData = RATE_DATA[state.selectedOrigin];
+          const sidoKey = findSidoKey(sidoInput, rateOriginData);
+          if (!sidoKey) { showToast(`광역시도 '${sidoInput}'을 찾을 수 없거나 데이터가 없습니다.`, 'error'); return; }
+          onProvinceClick(sidoKey, null, map);
+          if (parts.length >= 2) {
+            if (!state.municipalGeo) await new Promise(res => { const i = setInterval(() => { if (state.municipalGeo) { clearInterval(i); res(); } }, 100); });
+            const sigunguInput = parts[1];
+            const provCode = PROVINCE_CODES[sidoKey];
+            const sigungusInData = Object.keys(rateOriginData[sidoKey]);
+            const matchedSigunguFeature = state.municipalGeo.features.find(f => {
+              const code = f.properties.code || f.properties.Code || '';
+              if (provCode && !String(code).startsWith(provCode)) return false;
+              const name = f.properties.name || f.properties.Name || '';
+              const matchedName = matchSigunguName(name, sigungusInData);
+              if (!matchedName) return false;
+              return matchedName.includes(sigunguInput) || sigunguInput.includes(matchedName.replace(/(시|군|구)$/, ''));
+            });
+            if (matchedSigunguFeature) {
+              const sCode = String(matchedSigunguFeature.properties.code);
+              const sName = matchSigunguName(matchedSigunguFeature.properties.name || matchedSigunguFeature.properties.Name, sigungusInData);
+              await drillDownToEupmyeondong(sCode, sName, sidoKey, map, 'dest');
+              if (parts.length >= 3) {
+                if (!state.submunicipalGeo) await new Promise(res => { const i = setInterval(() => { if (state.submunicipalGeo) { clearInterval(i); res(); } }, 100); });
+                const dongInput = parts[2];
+                const dongKeys = Object.keys(rateOriginData[sidoKey][sName]);
+                const dongFeature = state.submunicipalGeo.features.find(f => {
+                  if (!String(f.properties.code || '').startsWith(sCode)) return false;
+                  const name = f.properties.name || f.properties.Name || '';
+                  return name.includes(dongInput) || dongInput.includes(name);
+                });
+                if (dongFeature) {
+                  const rawDongName = dongFeature.properties.name || dongFeature.properties.Name;
+                  const matchedDong = matchDongName(rawDongName, dongKeys);
+                  const finalDong = matchedDong || rawDongName;
+                  const lyr = L.geoJSON(dongFeature);
+                  const latlng = lyr.getBounds().getCenter();
+                  state.selectedSigungu = sName;
+                  state.selectedDong = finalDong;
+                  pinDongPolygon(dongFeature, 'dest', finalDong, sName);
+                  clearAllSelectionLayers();
+                  setDestination(latlng, sidoKey, `${sName} ${finalDong}`);
+                  updateBreadcrumb(sidoKey, sName, finalDong);
+                  recalculate();
+                  showToast(`도착지 확정: ${sName} ${finalDong}`, 'success');
+                }
+              }
+            }
           }
         }
       }
@@ -7404,6 +7526,10 @@
           let priceColor = 'var(--success)';
           let borderColor = 'var(--border-main)';
 
+          // Theme check for dark modes
+          const currentTheme = document.body.getAttribute('data-theme') || 'dark';
+          const isDarkMode = currentTheme !== 'light';
+
           if (i === 0) { // Rank 1: Royal Sunset / Orange
             tooltipBg = 'var(--orange)';
             tooltipColor = 'var(--white)';
@@ -7420,11 +7546,19 @@
             borderColor = 'var(--navy)';
           } else if (i === 2) { // Rank 3: Cyan/Blue
             tooltipBg = 'var(--cyan)';
-            tooltipColor = 'var(--white)';
-            rankLabelBg = 'var(--white)';
-            rankLabelColor = 'var(--cyan)';
-            priceColor = '#A0F0FF';
+            // Use black text on bright backgrounds (like Cyber Neon's Cyan or default Cyan)
+            const isCyber = currentTheme === 'cyber';
+            const isEmerald = currentTheme === 'emerald';
+            tooltipColor = (isCyber || isEmerald || currentTheme === 'dark') ? '#000000' : 'var(--white)';
+            rankLabelBg = (isCyber || isEmerald || currentTheme === 'dark') ? 'rgba(0,0,0,0.1)' : 'var(--white)';
+            rankLabelColor = (isCyber || isEmerald || currentTheme === 'dark') ? '#000000' : 'var(--cyan)';
+            priceColor = (isCyber || isEmerald || currentTheme === 'dark') ? '#000000' : '#A0F0FF';
             borderColor = 'var(--navy)';
+          } else {
+            // Rank 4 and below: Force white text in dark modes for better visibility
+            if (isDarkMode) {
+              tooltipColor = '#ffffff';
+            }
           }
 
           // Anti-overlap: Alternate directions for top ranks, then auto/jitter
@@ -7442,10 +7576,12 @@
                   background:${rankLabelBg};
                   color:${rankLabelColor}">${i + 1}</span>
                 <span style="font-size:.73rem;font-weight:800;max-width:140px;
-                  overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.OS_NM}</span>
+                  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+                  color:${tooltipColor}">${s.OS_NM}</span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-                <span style="font-size:.62rem;opacity:0.85;white-space:nowrap">${shortAddrStr}</span>
+                <span style="font-size:.62rem;opacity:0.85;white-space:nowrap;
+                  color:${tooltipColor}">${shortAddrStr}</span>
                 <span style="font-size:.8rem;font-weight:900;color:${priceColor};
                   white-space:nowrap">${price.toLocaleString()}원</span>
               </div>
