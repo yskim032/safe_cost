@@ -9007,6 +9007,14 @@
         // Focus map on custom location
         if (customLat && customLng && state.map) {
           state.map.setView([customLat, customLng], 14);
+          // Highlight/open tooltip for this structure
+          if (navState.structureMarkers) {
+            const mkr = navState.structureMarkers.find(m => {
+              const ll = m.getLatLng();
+              return Math.abs(ll.lat - customLat) < 0.0001 && Math.abs(ll.lng - customLng) < 0.0001;
+            });
+            if (mkr) mkr.openTooltip();
+          }
         }
 
         // Update title
