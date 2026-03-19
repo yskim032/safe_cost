@@ -3328,6 +3328,36 @@
       transform: scale(1.08);
       background: #02a34d;
     }
+
+    /* Minimized handle */
+    #naver-dir-handle {
+      position: fixed;
+      top: 50%;
+      right: 0;
+      transform: translateY(-50%);
+      width: 32px;
+      height: 80px;
+      background: #03C75A;
+      color: white;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px 0 0 8px;
+      cursor: pointer;
+      z-index: 1501;
+      box-shadow: -2px 0 10px rgba(0,0,0,0.3);
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-family: "Noto Sans KR", sans-serif;
+      padding-top: 5px;
+    }
+    
+    #naver-dir-handle:hover {
+      width: 40px;
+      background: #02a34d;
+    }
 </style>
 </head>
 
@@ -8698,24 +8728,41 @@
 
         const panel = document.getElementById("naver-dir-panel");
         const frame = document.getElementById("naver-dir-frame");
+        const handle = document.getElementById("naver-dir-handle");
         
         // Construct names
         const originName = encodeURIComponent(state.selectedOrigin || "출발지");
         const destName = encodeURIComponent(state.selectedDong ? (state.selectedSigungu + " " + state.selectedDong) : "도착지");
         
-        // Format: lng,lat,name
-        // car mode: /-/car?c=...
         const url = `https://map.naver.com/p/directions/${origin.lng},${origin.lat},${originName}/${dest.lng},${dest.lat},${destName}/-/car?c=15.00,0,0,0,dh`;
         
-        frame.src = url;
+        // Only reload if the URL is different or frame is blank
+        if (frame.src !== url && !frame.src.includes(url)) {
+          frame.src = url;
+          showToast("네이버 지도로 길찾기 경로를 분석합니다.", "success");
+        }
+
         panel.classList.add("partial");
         panel.classList.remove("full");
+        handle.style.display = "none";
         
-        // Update button states
         document.getElementById("naver-dir-mode-partial").classList.add("active");
         document.getElementById("naver-dir-mode-full").classList.remove("active");
-        
-        showToast("네이버 지도로 길찾기 경로를 분석합니다.", "success");
+      }
+
+      function minimizeNaverDirMap() {
+        const panel = document.getElementById("naver-dir-panel");
+        const handle = document.getElementById("naver-dir-handle");
+        panel.classList.remove("partial", "full");
+        handle.style.display = "flex";
+        showToast("지도를 최소화했습니다. 다시 보려면 오른쪽 핸들을 클릭하세요.", "info");
+      }
+
+      function restoreNaverDirMap() {
+        const panel = document.getElementById("naver-dir-panel");
+        const handle = document.getElementById("naver-dir-handle");
+        panel.classList.add("partial");
+        handle.style.display = "none";
       }
 
       function setNaverDirMode(mode) {
@@ -8736,8 +8783,10 @@
       function closeNaverDirMap() {
         const panel = document.getElementById("naver-dir-panel");
         const frame = document.getElementById("naver-dir-frame");
+        const handle = document.getElementById("naver-dir-handle");
         panel.classList.remove("partial", "full");
-        frame.src = "about:blank"; // Clear iframe to stop resources
+        handle.style.display = "none";
+        frame.src = "about:blank";
       }
 
       function checkNaverDirButtonVisibility() {
@@ -8962,13 +9011,16 @@ async function openStreetView() {
         <button id="naver-dir-mode-full" class="naver-dir-ctrl-btn" onclick="setNaverDirMode('full')">
           <span></span> 전체
         </button>
-        <button id="naver-dir-close-btn" onclick="closeNaverDirMap()" title="닫기">&times;</button>
+        <button class="naver-dir-ctrl-btn" onclick="minimizeNaverDirMap()" title="접기">
+          <span></span> 접기
+        </button>
+        <button id="naver-dir-close-btn" onclick="closeNaverDirMap()" title="완전히 닫기">&times;</button>
       </div>
     </div>
     <div id="naver-dir-frame-container">
       <iframe id="naver-dir-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
     </div>
   </div>
-</body>
+<div id="naver-dir-handle" onclick="restoreNaverDirMap()">네이버맵 열기 </div></body>
 
 </html>
