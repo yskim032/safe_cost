@@ -7485,6 +7485,9 @@
               zIndexOffset: 450
             }).addTo(state.map);
             marker.bindTooltip(`<strong style="color:${color}">${iconHash} ${s.n}</strong>`, { direction: 'top', offset: [0, -10], className: 'msc-tooltip' });
+            marker.on('click', () => {
+              openStructureStreetView(s.ll[0], s.ll[1], s.n);
+            });
             navState.structureMarkers.push(marker);
           });
         }
@@ -7672,8 +7675,9 @@
             navState.structures.forEach(s => {
               const icon = s.t === 't' ? '🚇' : '🌉';
               const cColor = s.t === 't' ? '#ff4081' : '#03C75A';
-              strHtml += `<div style="font-size:0.75rem;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;">
+              strHtml += `<div style="font-size:0.75rem;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="openStructureStreetView(${s.ll[0]}, ${s.ll[1]}, '${s.n}')" title="클릭하여 거리뷰 보기">
                   <span style="color:${cColor};font-weight:600">${icon} ${s.n}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.4"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
                 </div>`;
             });
             strHtml += `</div>`;
@@ -8959,7 +8963,16 @@
         openStreetViewWithKey(clientId);
       }
 
-      async function openStreetViewWithKey(clientId) {
+      function openStructureStreetView(lat, lng, name) {
+        const clientId = getNaverClientId();
+        if (!clientId) {
+          openNaverKeyModal((id) => openStreetViewWithKey(id, lat, lng, name));
+          return;
+        }
+        openStreetViewWithKey(clientId, lat, lng, name);
+      }
+
+      async function openStreetViewWithKey(clientId, customLat, customLng, customTitle) {
         const modal = document.getElementById('streetview-modal');
         const status = document.getElementById('streetview-status');
         const naverBtn = document.getElementById('streetview-open-naver-btn');
@@ -8977,17 +8990,21 @@
         // Update title
         const titleEl = document.getElementById('streetview-title');
         if (titleEl) {
-          const sido = state.selectedSido || '';
-          const sigungu = state.selectedSigungu || '';
-          const dong = state.selectedDong || '';
-          titleEl.textContent = `📍 ${sido} ${sigungu} ${dong}`.trim() || '도착지 거리뷰';
+          if (customTitle) {
+            titleEl.textContent = `📍 ${customTitle}`;
+          } else {
+            const sido = state.selectedSido || '';
+            const sigungu = state.selectedSigungu || '';
+            const dong = state.selectedDong || '';
+            titleEl.textContent = `📍 ${sido} ${sigungu} ${dong}`.trim() || '도착지 거리뷰';
+          }
         }
 
         try {
           await loadNaverMapsJS(clientId);
 
-          const lat = state.destLatLng.lat;
-          const lng = state.destLatLng.lng;
+          const lat = customLat || state.destLatLng.lat;
+          const lng = customLng || state.destLatLng.lng;
 
           // Destroy previous panorama
           if (_naverPanorama) {
