@@ -3176,7 +3176,159 @@
         opacity: 1;
       }
     }
-  </style>
+  
+    /* ============ NAVER DIRECTIONS PANEL ============ */
+    #naver-dir-panel {
+      position: fixed;
+      top: var(--header-h, 56px);
+      bottom: 0;
+      right: 0;
+      width: 0;
+      background: var(--bg-body);
+      z-index: 1500;
+      display: flex;
+      flex-direction: column;
+      box-shadow: -5px 0 25px rgba(0,0,0,0.4);
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-left: 1px solid var(--glass-border);
+      overflow: hidden;
+    }
+
+    #naver-dir-panel.partial {
+      width: 50%;
+    }
+
+    @media (max-width: 1200px) {
+      #naver-dir-panel.partial { width: 70%; }
+    }
+    @media (max-width: 800px) {
+      #naver-dir-panel.partial { width: 100%; right: 0; }
+    }
+
+    #naver-dir-panel.full {
+      width: 100%;
+      right: 0;
+    }
+
+    #naver-dir-header {
+      height: 48px;
+      background: var(--navy-dark);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 10px;
+      border-bottom: 1px solid var(--glass-border);
+      flex-shrink: 0;
+    }
+
+    .naver-dir-title {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #03C75A;
+    }
+
+    .naver-dir-controls {
+      display: flex;
+      gap: 6px;
+    }
+
+    .naver-dir-ctrl-btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.05);
+      color: var(--text-secondary);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .naver-dir-ctrl-btn:hover {
+      background: rgba(255,255,255,0.12);
+      color: white;
+    }
+
+    .naver-dir-ctrl-btn.active {
+      background: var(--orange);
+      color: white;
+      border-color: var(--orange);
+    }
+
+    #naver-dir-close-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      margin-left: 4px;
+    }
+
+    #naver-dir-close-btn:hover {
+      background: rgba(255,0,0,0.15);
+      color: #ff6b6b;
+    }
+
+    #naver-dir-frame-container {
+      flex: 1;
+      position: relative;
+      background: #edf1f5; /* Naver map light bg color */
+    }
+
+    #naver-dir-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Activator button */
+    #naver-dir-toggle-btn {
+      position: absolute;
+      bottom: 132px;
+      left: 12px;
+      z-index: 1001;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #03C75A;
+      border: none;
+      color: white;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(3, 199, 90, 0.45);
+      transition: all 0.2s;
+      flex-direction: column;
+      gap: 1px;
+      font-size: 0.52rem;
+      font-weight: 800;
+      font-family: "Noto Sans KR", sans-serif;
+    }
+
+    #naver-dir-toggle-btn.visible {
+      display: flex;
+      animation: popIn 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+
+    #naver-dir-toggle-btn:hover {
+      transform: scale(1.08);
+      background: #02a34d;
+    }
+</style>
 </head>
 
 <body>
@@ -3312,6 +3464,13 @@
           </svg>
         </div>
         <!-- Naver Street View Button (shown when dest marker is set) -->
+        <button id="naver-dir-toggle-btn" onclick="openNaverDirMap()" title="네이버 지도 길찾기 연동">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 11 12 14 22 4"></polyline>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+          <span>네이버맵</span>
+        </button>
         <button id="streetview-map-btn" onclick="openStreetView()" title="네이버 거리뷰 (도착지 핀 위치)">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="8" r="4" />
@@ -6188,6 +6347,7 @@
         if (svBtn) svBtn.classList.add('visible');
 
         updateRouteSVG();
+        if (typeof checkNaverDirButtonVisibility === 'function') checkNaverDirButtonVisibility();
       }
 
       function setOriginMarker(latlng, sido, name) {
@@ -6239,6 +6399,7 @@
         });
 
         updateRouteSVG();
+        if (typeof checkNaverDirButtonVisibility === 'function') checkNaverDirButtonVisibility();
       }
 
       // ============================================================
@@ -7061,6 +7222,7 @@
         const grp = document.getElementById('route-group');
         if (grp) grp.style.opacity = '';
         updateRouteSVG();
+        if (typeof checkNaverDirButtonVisibility === 'function') checkNaverDirButtonVisibility();
       }
 
       function clearNavRoute() {
@@ -8521,7 +8683,72 @@
         });
       }
 
-      async function openStreetView() {
+      
+      // ===================================
+      // NAVER MAP DIRECTIONS INTEGRATION
+      // ===================================
+      function openNaverDirMap() {
+        const origin = state.originLatLng;
+        const dest = state.destLatLng;
+        
+        if (!origin || !dest) {
+          showToast("출발지와 도착지를 먼저 선택해주세요.", "info");
+          return;
+        }
+
+        const panel = document.getElementById("naver-dir-panel");
+        const frame = document.getElementById("naver-dir-frame");
+        
+        // Construct names
+        const originName = encodeURIComponent(state.selectedOrigin || "출발지");
+        const destName = encodeURIComponent(state.selectedDong ? (state.selectedSigungu + " " + state.selectedDong) : "도착지");
+        
+        // Format: lng,lat,name
+        // car mode: /-/car?c=...
+        const url = `https://map.naver.com/p/directions/${origin.lng},${origin.lat},${originName}/${dest.lng},${dest.lat},${destName}/-/car?c=15.00,0,0,0,dh`;
+        
+        frame.src = url;
+        panel.classList.add("partial");
+        panel.classList.remove("full");
+        
+        // Update button states
+        document.getElementById("naver-dir-mode-partial").classList.add("active");
+        document.getElementById("naver-dir-mode-full").classList.remove("active");
+        
+        showToast("네이버 지도로 길찾기 경로를 분석합니다.", "success");
+      }
+
+      function setNaverDirMode(mode) {
+        const panel = document.getElementById("naver-dir-panel");
+        if (mode === "full") {
+          panel.classList.add("full");
+          panel.classList.remove("partial");
+          document.getElementById("naver-dir-mode-full").classList.add("active");
+          document.getElementById("naver-dir-mode-partial").classList.remove("active");
+        } else {
+          panel.classList.add("partial");
+          panel.classList.remove("full");
+          document.getElementById("naver-dir-mode-partial").classList.add("active");
+          document.getElementById("naver-dir-mode-full").classList.remove("active");
+        }
+      }
+
+      function closeNaverDirMap() {
+        const panel = document.getElementById("naver-dir-panel");
+        const frame = document.getElementById("naver-dir-frame");
+        panel.classList.remove("partial", "full");
+        frame.src = "about:blank"; // Clear iframe to stop resources
+      }
+
+      function checkNaverDirButtonVisibility() {
+        const btn = document.getElementById("naver-dir-toggle-btn");
+        if (state.originLatLng && state.destLatLng) {
+          btn.classList.add("visible");
+        } else {
+          btn.classList.remove("visible");
+        }
+      }
+async function openStreetView() {
         if (!state.destLatLng) {
           showToast('도착지 핀을 먼저 설정하세요.', 'error');
           return;
@@ -8656,6 +8883,7 @@
       window.addEventListener('resize', () => {
         syncSVGSize();
         updateRouteSVG();
+        if (typeof checkNaverDirButtonVisibility === 'function') checkNaverDirButtonVisibility();
       });
     </script>
 
@@ -8716,6 +8944,31 @@
     </div>
   </div>
 
+
+  <!-- ====== NAVER DIRECTIONS PANEL ====== -->
+  <div id="naver-dir-panel">
+    <div id="naver-dir-header">
+      <div class="naver-dir-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <rect width="24" height="24" rx="4" fill="#03C75A"/>
+          <path d="M7 17V7l5 7.5V7h5v10l-5-7.5V17H7z" fill="white"/>
+        </svg>
+        <span>NAVER 지도 길찾기</span>
+      </div>
+      <div class="naver-dir-controls">
+        <button id="naver-dir-mode-partial" class="naver-dir-ctrl-btn active" onclick="setNaverDirMode('partial')">
+          <span>◨</span> 부분
+        </button>
+        <button id="naver-dir-mode-full" class="naver-dir-ctrl-btn" onclick="setNaverDirMode('full')">
+          <span></span> 전체
+        </button>
+        <button id="naver-dir-close-btn" onclick="closeNaverDirMap()" title="닫기">&times;</button>
+      </div>
+    </div>
+    <div id="naver-dir-frame-container">
+      <iframe id="naver-dir-frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+    </div>
+  </div>
 </body>
 
 </html>
