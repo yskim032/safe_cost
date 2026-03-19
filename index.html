@@ -2891,7 +2891,7 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 52px;
+      height: 56px;
       background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent);
       display: flex;
       align-items: center;
@@ -2920,6 +2920,31 @@
       font-size: 0.75rem;
       font-weight: 700;
       color: #03C75A;
+    }
+
+    #streetview-back-btn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      color: white;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: "Noto Sans KR", sans-serif;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    #streetview-back-btn:hover {
+      background: rgba(255, 255, 255, 0.28);
+      border-color: rgba(255, 255, 255, 0.5);
+      transform: translateX(-2px);
     }
 
     #streetview-close-btn {
@@ -8637,6 +8662,12 @@
   <!-- ====== NAVER STREET VIEW MODAL ====== -->
   <div id="streetview-modal">
     <div id="streetview-header">
+      <button id="streetview-back-btn" onclick="closeStreetView()" title="계산기로 돌아가기">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        계산기로 돌아가기
+      </button>
       <div id="streetview-naver-logo">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
           <rect width="24" height="24" rx="4" fill="#03C75A"/>
@@ -8645,11 +8676,11 @@
         NAVER 거리뷰
       </div>
       <div id="streetview-title">도착지 거리뷰</div>
-      <button id="streetview-close-btn" onclick="closeStreetView()" title="닫기"></button>
+      <button id="streetview-close-btn" onclick="closeStreetView()" title="닫기">✕</button>
     </div>
     <div id="streetview-container"></div>
     <div id="streetview-status"></div>
-    <button id="streetview-open-naver-btn"> 네이버 지도에서 열기</button>
+    <button id="streetview-open-naver-btn">🗺 네이버 지도에서 열기</button>
   </div>
 
   <!-- ====== NAVER CLIENT ID MODAL ====== -->
