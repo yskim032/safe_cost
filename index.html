@@ -2962,6 +2962,30 @@
       transform: translateX(-2px);
     }
 
+    #streetview-map-switch-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      background: linear-gradient(135deg, #03C75A, #02a34d);
+      color: white;
+      border: none;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Noto Sans KR', sans-serif;
+      transition: all 0.2s;
+      margin-left: auto;
+      margin-right: 12px;
+      box-shadow: 0 4px 12px rgba(3, 199, 90, 0.3);
+    }
+
+    #streetview-map-switch-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(3, 199, 90, 0.45);
+    }
+
     #streetview-close-btn {
       width: 36px;
       height: 36px;
@@ -9109,6 +9133,46 @@
         if (container) container.innerHTML = '';
       }
 
+      function switchToNaverMap() {
+        const modal = document.getElementById('streetview-modal');
+        if (!modal || !modal.classList.contains('open')) return;
+
+        let lat, lng, name;
+        if (_naverPanorama) {
+          const pos = _naverPanorama.getPosition();
+          lat = pos.lat();
+          lng = pos.lng();
+        } else {
+          lat = state.destLatLng.lat;
+          lng = state.destLatLng.lng;
+        }
+
+        const titleEl = document.getElementById('streetview-title');
+        name = titleEl ? titleEl.textContent.replace('📍 ', '') : '구조물';
+
+        // Close street view
+        closeStreetView();
+
+        // Open Naver Map Panel with search URL
+        const panel = document.getElementById("naver-dir-panel");
+        const frame = document.getElementById("naver-dir-frame");
+        const handle = document.getElementById("naver-dir-handle");
+        if (!panel || !frame) return;
+
+        const encodedName = encodeURIComponent(name);
+        const url = `https://map.naver.com/p/search/${encodedName}?c=${lng},${lat},15,0,0,0,dh`;
+
+        frame.src = url;
+        panel.classList.add("partial");
+        panel.classList.remove("full");
+        if (handle) handle.style.display = "none";
+
+        document.getElementById("naver-dir-mode-partial")?.classList.add("active");
+        document.getElementById("naver-dir-mode-full")?.classList.remove("active");
+
+        showToast(`${name} 위치로 지도가 전환되었습니다.`, "success");
+      }
+
       function resetNaverKey() {
         localStorage.removeItem('naver_client_id');
         // Remove loaded script so it can be re-loaded with new key
@@ -9148,6 +9212,9 @@
           NAVER 거리뷰
         </div>
         <div id="streetview-title">도착지 거리뷰</div>
+        <button id="streetview-map-switch-btn" onclick="switchToNaverMap()" title="네이버 지도로 지점 보기">
+          🗺️ 지도로 보기
+        </button>
         <button id="streetview-close-btn" onclick="closeStreetView()" title="닫기">✕</button>
       </div>
       <div id="streetview-container"></div>
