@@ -7312,6 +7312,84 @@
         return data.routes[0];
       }
 
+      // ===================================
+      // BRIDGE & TUNNEL ANALYSIS
+      // ===================================
+      function analyzeStructures(routeCoords) {
+        if (typeof STRUCTURES_DATA === 'undefined' || !STRUCTURES_DATA || STRUCTURES_DATA.length === 0) return [];
+
+        let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+        routeCoords.forEach(p => {
+          if (p[0] < minLat) minLat = p[0];
+          if (p[0] > maxLat) maxLat = p[0];
+          if (p[1] < minLng) minLng = p[1];
+          if (p[1] > maxLng) maxLng = p[1];
+        });
+
+        const margin = 0.005;
+        minLat -= margin; maxLat += margin;
+        minLng -= margin; maxLng += margin;
+
+        const candidates = STRUCTURES_DATA.filter(s => {
+          const lat = s.ll[0], lng = s.ll[1];
+          return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
+        });
+
+        if (candidates.length === 0) return [];
+
+        const MAX_DIST_M = 150;
+        const routeLll = routeCoords.map(c => L.latLng(c[0], c[1]));
+        const matched = [];
+        const seenNames = new Set();
+
+        candidates.forEach(s => {
+          const sll = L.latLng(s.ll[0], s.ll[1]);
+          let minDist = Infinity;
+          let bestIdx = -1;
+
+          for (let i = 0; i < routeLll.length - 1; i++) {
+            const c1 = routeLll[i], c2 = routeLll[i + 1];
+            const lat_min = Math.min(c1.lat, c2.lat) - 0.002;
+            const lat_max = Math.max(c1.lat, c2.lat) + 0.002;
+            const lng_min = Math.min(c1.lng, c2.lng) - 0.002;
+            const lng_max = Math.max(c1.lng, c2.lng) + 0.002;
+            if (sll.lat < lat_min || sll.lat > lat_max || sll.lng < lng_min || sll.lng > lng_max) continue;
+
+            const A = c1.lat - sll.lat, B = c1.lng - sll.lng;
+            const C = c2.lat - sll.lat, D = c2.lng - sll.lng;
+            const dot = A * (c2.lat - c1.lat) + B * (c2.lng - c1.lng);
+            const len2 = (c2.lat - c1.lat) ** 2 + (c2.lng - c1.lng) ** 2;
+
+            let dist = 0;
+            if (len2 === 0) {
+              dist = sll.distanceTo(c1);
+            } else {
+              let param = -dot / len2;
+              if (param < 0) dist = sll.distanceTo(c1);
+              else if (param > 1) dist = sll.distanceTo(c2);
+              else dist = sll.distanceTo(L.latLng(c1.lat + param * (c2.lat - c1.lat), c1.lng + param * (c2.lng - c1.lng)));
+            }
+
+            if (dist < minDist) {
+              minDist = dist;
+              bestIdx = i;
+            }
+          }
+
+          if (minDist <= MAX_DIST_M) {
+            const routePct = bestIdx / routeLll.length;
+            const key = s.n + '_' + s.t;
+            if (!seenNames.has(key)) {
+              seenNames.add(key);
+              matched.push({ ...s, dist: minDist, pct: routePct });
+            }
+          }
+        });
+
+        matched.sort((a, b) => a.pct - b.pct);
+        return matched;
+      }
+
       function drawNavRealRoute(route) {
         clearNavRoute();
         const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
