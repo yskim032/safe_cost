@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="rate_data.js"></script>
+  <script src="structures_data.js"></script>
   <!-- Naver Maps API: ncpClientId will be injected dynamically when user provides key -->
   <script id="naver-maps-script">/* Naver Maps loaded on demand */</script>
   <style>
@@ -7234,7 +7235,9 @@
         departureTime: '',
         fuelEfficiency: 4.0,
         fuelPrice: 1750,
-        tollRate: 65
+        tollRate: 65,
+        structures: [],
+        structureMarkers: []
       };
 
       function openNavPanel() {
