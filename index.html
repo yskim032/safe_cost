@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MSC KOREA | 안전운임 계산기 2026 (v1.1.0)</title>
-  <!-- Released at 2026-03-18T23:37:00+09:00 -->
+  <title>MSC KOREA | 안전운임 계산기 2026 (v1.2.0)</title>
+  <!-- Released at 2026-03-19T20:28:00+09:00 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap"
@@ -13,6 +13,8 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="rate_data.js"></script>
+  <!-- Naver Maps API: ncpClientId will be injected dynamically when user provides key -->
+  <script id="naver-maps-script">/* Naver Maps loaded on demand */</script>
   <style>
     :root {
       /* Base Colors (Original Midnight) */
@@ -2827,6 +2829,328 @@
         transform: translateY(0) scale(1);
       }
     }
+
+    /* ============ NAVER STREETVIEW BUTTON ============ */
+    .dest-streetview-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 8px 14px;
+      background: linear-gradient(135deg, #03C75A, #02a34d);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Noto Sans KR', sans-serif;
+      transition: all 0.2s;
+      box-shadow: 0 2px 10px rgba(3, 199, 90, 0.35);
+      width: 100%;
+      justify-content: center;
+    }
+
+    .dest-streetview-btn:hover {
+      background: linear-gradient(135deg, #02a34d, #017a3a);
+      box-shadow: 0 4px 16px rgba(3, 199, 90, 0.5);
+      transform: translateY(-1px);
+    }
+
+    .dest-streetview-btn:active {
+      transform: translateY(0);
+    }
+
+    /* ============ NAVER STREETVIEW MODAL ============ */
+    #streetview-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      display: none;
+      flex-direction: column;
+      background: #000;
+    }
+
+    #streetview-modal.open {
+      display: flex;
+      animation: modalFadeIn 0.3s ease;
+    }
+
+    @keyframes modalFadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    #streetview-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 52px;
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    #streetview-header>* {
+      pointer-events: auto;
+    }
+
+    #streetview-title {
+      flex: 1;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: white;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    #streetview-naver-logo {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #03C75A;
+    }
+
+    #streetview-close-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      color: white;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+      transition: background 0.2s;
+    }
+
+    #streetview-close-btn:hover {
+      background: rgba(255, 255, 255, 0.28);
+    }
+
+    #streetview-container {
+      flex: 1;
+      width: 100%;
+    }
+
+    #streetview-status {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.75);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      backdrop-filter: blur(8px);
+      z-index: 10;
+      display: none;
+      text-align: center;
+      max-width: 340px;
+      line-height: 1.5;
+    }
+
+    #streetview-open-naver-btn {
+      display: none;
+      position: absolute;
+      bottom: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 22px;
+      background: #03C75A;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      z-index: 10;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    /* ============ NAVER API KEY SETUP MODAL ============ */
+    #naver-key-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(6px);
+    }
+
+    #naver-key-modal.open {
+      display: flex;
+      animation: modalFadeIn 0.25s ease;
+    }
+
+    .naver-key-box {
+      background: var(--bg-overlay);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 28px;
+      max-width: 440px;
+      width: 90vw;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .naver-key-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #03C75A;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .naver-key-desc {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .naver-key-desc a {
+      color: #03C75A;
+      text-decoration: none;
+    }
+
+    .naver-key-desc a:hover {
+      text-decoration: underline;
+    }
+
+    .naver-key-input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    #naver-client-id-input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-main);
+      color: var(--text-primary);
+      font-size: 0.82rem;
+      font-family: 'Noto Sans KR', sans-serif;
+      outline: none;
+    }
+
+    #naver-client-id-input:focus {
+      border-color: #03C75A;
+      box-shadow: 0 0 0 3px rgba(3, 199, 90, 0.15);
+    }
+
+    .naver-key-confirm-btn {
+      padding: 10px 18px;
+      background: linear-gradient(135deg, #03C75A, #02a34d);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 0.82rem;
+      transition: all 0.2s;
+    }
+
+    .naver-key-confirm-btn:hover {
+      background: linear-gradient(135deg, #02a34d, #017a3a);
+    }
+
+    .naver-key-cancel-btn {
+      width: 100%;
+      margin-top: 10px;
+      padding: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 0.78rem;
+      transition: all 0.2s;
+    }
+
+    .naver-key-cancel-btn:hover {
+      color: var(--text-primary);
+      border-color: var(--border-main);
+    }
+
+    .naver-key-note {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 12px;
+      line-height: 1.5;
+      padding: 8px 10px;
+      background: var(--bg-section);
+      border-radius: 6px;
+    }
+
+    /* ============ STREETVIEW MAP BUTTON (on map) ============ */
+    #streetview-map-btn {
+      position: absolute;
+      bottom: 80px;
+      left: 12px;
+      z-index: 1001;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #03C75A, #02a34d);
+      border: none;
+      color: white;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(3, 199, 90, 0.45);
+      transition: all 0.2s;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 0.55rem;
+      font-weight: 700;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    #streetview-map-btn.visible {
+      display: flex;
+      animation: popIn 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+
+    #streetview-map-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 20px rgba(3, 199, 90, 0.6);
+    }
+
+    @keyframes popIn {
+      from {
+        transform: scale(0.5);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
   </style>
 </head>
 
@@ -2962,6 +3286,16 @@
             <path d="M12 18H8.5a3.5 3.5 0 0 1 0-7h7a3.5 3.5 0 0 0 0-7H12"></path>
           </svg>
         </div>
+        <!-- Naver Street View Button (shown when dest marker is set) -->
+        <button id="streetview-map-btn" onclick="openStreetView()" title="네이버 거리뷰 (도착지 핀 위치)">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M12 12c-4 0-7 2-7 4.5V18h14v-1.5c0-2.5-3-4.5-7-4.5z" fill="currentColor" stroke="none"
+              opacity="0.5" />
+            <circle cx="12" cy="8" r="1.5" fill="currentColor" />
+          </svg>
+          <span>거리뷰</span>
+        </button>
         <!-- Navigation Analysis Panel -->
         <div id="nav-analysis-panel" class="nav-analysis-panel">
           <div class="nav-panel-header">
@@ -5777,6 +6111,24 @@
           ).openTooltip();
         }
 
+        // Bind popup with Street View button
+        const svPopupHtml = `<div style="font-family:'Noto Sans KR',sans-serif;min-width:190px;padding:4px 0">
+          <div style="font-size:.82rem;font-weight:700;color:var(--text-primary);margin-bottom:4px">
+            📍 ${fullAddr || '도착지'}
+          </div>
+          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:8px">
+            ${latlng.lat.toFixed(5)}°N, ${latlng.lng.toFixed(5)}°E
+          </div>
+          <button class="dest-streetview-btn" onclick="openStreetView(); this.closest('.leaflet-popup').remove()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M20 21a8 8 0 1 0-16 0" />
+            </svg>
+            🟢 네이버 거리뷰 열기
+          </button>
+        </div>`;
+        state.destMarker.bindPopup(svPopupHtml, { maxWidth: 240 });
+
         state.destMarker.on('drag', e => {
           state.destLatLng = e.target.getLatLng();
           updateRouteSVG();
@@ -5786,7 +6138,29 @@
         state.destMarker.on('dragend', e => {
           updateRouteSVG();
           commitDragSelection(e.target.getLatLng(), 'dest');
+          // Update popup coords after drag
+          const pos = e.target.getLatLng();
+          const newHtml = `<div style="font-family:'Noto Sans KR',sans-serif;min-width:190px;padding:4px 0">
+            <div style="font-size:.82rem;font-weight:700;color:var(--text-primary);margin-bottom:4px">
+              📍 ${fullAddr || '도착지'}
+            </div>
+            <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:8px">
+              ${pos.lat.toFixed(5)}°N, ${pos.lng.toFixed(5)}°E
+            </div>
+            <button class="dest-streetview-btn" onclick="openStreetView(); this.closest('.leaflet-popup').remove()">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M20 21a8 8 0 1 0-16 0" />
+              </svg>
+              🟢 네이버 거리뷰 열기
+            </button>
+          </div>`;
+          state.destMarker.setPopupContent(newHtml);
         });
+
+        // Show street view map button
+        const svBtn = document.getElementById('streetview-map-btn');
+        if (svBtn) svBtn.classList.add('visible');
 
         updateRouteSVG();
       }
@@ -7968,29 +8342,77 @@
       function updateMapTiles(theme) {
         if (!state.map) return;
 
-        // Remove existing tile layer if stored
-        if (state.tileLayer) {
-          state.map.removeLayer(state.tileLayer);
+        // Remove existing tile layers
+        if (state.tileLayer) { state.map.removeLayer(state.tileLayer); state.tileLayer = null; }
+        if (state.tileLayerHybrid) { state.map.removeLayer(state.tileLayerHybrid); state.tileLayerHybrid = null; }
+
+        // CartoDB fallback URLs per theme
+        const cartoFallbacks = {
+          midnight: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+          light:    'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+          emerald:  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png',
+          sunset:   'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+          cyber:    'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
+        };
+        const cartoUrl = cartoFallbacks[theme] || cartoFallbacks.midnight;
+
+        function applyNaverTiles(ver) {
+          if (!state.map) return;
+          if (state.tileLayer) { try { state.map.removeLayer(state.tileLayer); } catch(e){} state.tileLayer = null; }
+          if (state.tileLayerHybrid) { try { state.map.removeLayer(state.tileLayerHybrid); } catch(e){} state.tileLayerHybrid = null; }
+
+          const bgUrl  = 'https://map.pstatic.net/nrb/styles/basic/' + ver + '/{z}/{x}/{y}.png?mt=bg.ol.lko';
+          const lblUrl = 'https://map.pstatic.net/nrb/styles/basic/' + ver + '/{z}/{x}/{y}.png?mt=ol.lko';
+
+          let failed = false;
+          state.tileLayer = L.tileLayer(bgUrl, {
+            attribution: '\u00a9 NAVER Corp. | <a href="https://map.naver.com" target="_blank">\ub124\uc774\ubc84 \uc9c0\ub3c4</a>',
+            maxZoom: 21,
+            crossOrigin: true,
+          });
+          state.tileLayer.addTo(state.map);
+          state.tileLayer.on('tileerror', function() {
+            if (failed) return; failed = true;
+            console.warn('[Map] Naver tile error \u2192 CartoDB fallback');
+            if (state.tileLayer) { try { state.map.removeLayer(state.tileLayer); } catch(e){} state.tileLayer = null; }
+            if (state.tileLayerHybrid) { try { state.map.removeLayer(state.tileLayerHybrid); } catch(e){} state.tileLayerHybrid = null; }
+            state.tileLayer = L.tileLayer(cartoUrl, { attribution: '\u00a9 CartoDB', subdomains: 'abcd', maxZoom: 19 }).addTo(state.map);
+            state.tileLayer.bringToBack();
+          });
+          state.tileLayer.bringToBack();
+
+          state.tileLayerHybrid = L.tileLayer(lblUrl, {
+            attribution: '', maxZoom: 21, crossOrigin: true,
+            opacity: (theme === 'midnight' || theme === 'cyber') ? 0.88 : 1.0,
+          }).addTo(state.map);
         }
 
-        let tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-        if (theme === 'light') {
-          tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-        } else if (theme === 'emerald') {
-          tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png';
-        } else if (theme === 'sunset') {
-          tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-        } else if (theme === 'cyber') {
-          tileUrl = 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png';
+        function useCarto() {
+          if (state.tileLayer) { try { state.map.removeLayer(state.tileLayer); } catch(e){} state.tileLayer = null; }
+          state.tileLayer = L.tileLayer(cartoUrl, { attribution: '\u00a9 CartoDB', subdomains: 'abcd', maxZoom: 19 }).addTo(state.map);
+          state.tileLayer.bringToBack();
         }
 
-        state.tileLayer = L.tileLayer(tileUrl, {
-          attribution: '© CartoDB',
-          subdomains: 'abcd',
-          maxZoom: 19,
-        }).addTo(state.map);
+        if (state._naverTileVer) {
+          applyNaverTiles(state._naverTileVer);
+          return;
+        }
 
-        state.tileLayer.bringToBack();
+        useCarto();
+
+        var candidates = ['1745549880', '1742000000', '1738000000', '1732841753'];
+        var tried = 0;
+        function tryNext() {
+          if (tried >= candidates.length) return;
+          var ver = candidates[tried++];
+          var testUrl = 'https://map.pstatic.net/nrb/styles/basic/' + ver + '/7/110/50.png?mt=bg.ol.lko';
+          var img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = function() { state._naverTileVer = ver; applyNaverTiles(ver); };
+          img.onerror = tryNext;
+          img.src = testUrl;
+        }
+        tryNext();
       }
 
       // Click outside listener for theme dropdown
@@ -8002,6 +8424,206 @@
         }
       });
 
+      // ============================================================
+      // NAVER STREET VIEW (Roadview / Panorama)
+      // ============================================================
+      let _naverMapScript = null;
+      let _naverPanorama = null;
+
+      function getNaverClientId() {
+        return localStorage.getItem('naver_client_id') || '';
+      }
+
+      function setNaverClientId(id) {
+        localStorage.setItem('naver_client_id', id.trim());
+      }
+
+      function openNaverKeyModal(onConfirm) {
+        const modal = document.getElementById('naver-key-modal');
+        const input = document.getElementById('naver-client-id-input');
+        if (!modal) return;
+        const saved = getNaverClientId();
+        if (input) input.value = saved;
+        modal.classList.add('open');
+        window._naverKeyOnConfirm = onConfirm;
+      }
+
+      function closeNaverKeyModal() {
+        const modal = document.getElementById('naver-key-modal');
+        if (modal) modal.classList.remove('open');
+      }
+
+      function confirmNaverKey() {
+        const input = document.getElementById('naver-client-id-input');
+        const val = (input?.value || '').trim();
+        if (!val) {
+          showToast('네이버 클라우드 Client ID를 입력해주세요.', 'error');
+          input?.focus();
+          return;
+        }
+        setNaverClientId(val);
+        closeNaverKeyModal();
+        showToast('Client ID 저장됨. 거리뷰를 불러옵니다...', 'success');
+        if (window._naverKeyOnConfirm) {
+          window._naverKeyOnConfirm(val);
+          window._naverKeyOnConfirm = null;
+        }
+      }
+
+      function loadNaverMapsJS(clientId) {
+        return new Promise((resolve, reject) => {
+          if (window.naver && window.naver.maps) { resolve(); return; }
+          const existing = document.getElementById('naver-maps-api-script');
+          if (existing) {
+            const check = setInterval(() => {
+              if (window.naver && window.naver.maps) { clearInterval(check); resolve(); }
+            }, 100);
+            setTimeout(() => { clearInterval(check); reject(new Error('timeout')); }, 10000);
+            return;
+          }
+          const script = document.createElement('script');
+          script.id = 'naver-maps-api-script';
+          script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${clientId}&submodules=panorama`;
+          script.onload = () => {
+            // Wait for naver.maps to be ready
+            const check = setInterval(() => {
+              if (window.naver && window.naver.maps) { clearInterval(check); resolve(); }
+            }, 100);
+            setTimeout(() => { clearInterval(check); reject(new Error('timeout')); }, 10000);
+          };
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      async function openStreetView() {
+        if (!state.destLatLng) {
+          showToast('도착지 핀을 먼저 설정하세요.', 'error');
+          return;
+        }
+
+        const clientId = getNaverClientId();
+        if (!clientId) {
+          openNaverKeyModal((id) => openStreetViewWithKey(id));
+          return;
+        }
+
+        openStreetViewWithKey(clientId);
+      }
+
+      async function openStreetViewWithKey(clientId) {
+        const modal = document.getElementById('streetview-modal');
+        const status = document.getElementById('streetview-status');
+        const naverBtn = document.getElementById('streetview-open-naver-btn');
+        const container = document.getElementById('streetview-container');
+        if (!modal) return;
+
+        // Open modal
+        modal.classList.add('open');
+        if (status) {
+          status.style.display = 'block';
+          status.textContent = '네이버 거리뷰 불러오는 중...';
+        }
+        if (naverBtn) naverBtn.style.display = 'none';
+
+        // Update title
+        const titleEl = document.getElementById('streetview-title');
+        if (titleEl) {
+          const sido = state.selectedSido || '';
+          const sigungu = state.selectedSigungu || '';
+          const dong = state.selectedDong || '';
+          titleEl.textContent = `📍 ${sido} ${sigungu} ${dong}`.trim() || '도착지 거리뷰';
+        }
+
+        try {
+          await loadNaverMapsJS(clientId);
+
+          const lat = state.destLatLng.lat;
+          const lng = state.destLatLng.lng;
+
+          // Destroy previous panorama
+          if (_naverPanorama) {
+            try { _naverPanorama.destroy(); } catch (e) { }
+            _naverPanorama = null;
+          }
+
+          // Reset container
+          if (container) container.innerHTML = '';
+          const panoDiv = document.createElement('div');
+          panoDiv.id = 'naver-pano-viewer';
+          panoDiv.style.cssText = 'width:100%;height:100%;';
+          if (container) container.appendChild(panoDiv);
+
+          // Create Naver Panorama
+          _naverPanorama = new naver.maps.Panorama(panoDiv, {
+            position: new naver.maps.LatLng(lat, lng),
+            pov: { pan: 0, tilt: 0, fov: 100 },
+          });
+
+          // Listen for panorama ready / no data
+          naver.maps.Event.addListener(_naverPanorama, 'pano_status', function (status) {
+            if (status === 'NO_DATA') {
+              if (_status) {
+                _status.style.display = 'block';
+                _status.textContent = '이 위치에서는 거리뷰 데이터가 없습니다.\n네이버 지도에서 확인하거나 핀을 이동해보세요.';
+              }
+              if (naverBtn) {
+                naverBtn.style.display = 'block';
+                naverBtn.onclick = () => {
+                  window.open(`https://map.naver.com/p/entry/street?c=${lng},${lat},15,0,0,0,dh`, '_blank');
+                };
+              }
+            } else {
+              if (_status) _status.style.display = 'none';
+            }
+          });
+
+          const _status = status;
+          // Initial hide status after short delay if panorama loaded
+          setTimeout(() => {
+            if (_status && _status.textContent === '네이버 거리뷰 불러오는 중...') {
+              _status.style.display = 'none';
+            }
+          }, 3000);
+
+        } catch (e) {
+          console.error('[StreetView] Error:', e);
+          if (status) {
+            status.style.display = 'block';
+            status.textContent = '네이버 지도 API 로딩 실패.\nClient ID를 확인하거나 네이버 지도에서 직접 확인하세요.';
+          }
+          if (naverBtn) {
+            const lat = state.destLatLng.lat;
+            const lng = state.destLatLng.lng;
+            naverBtn.style.display = 'block';
+            naverBtn.onclick = () => {
+              window.open(`https://map.naver.com/p/entry/street?c=${lng},${lat},15,0,0,0,dh`, '_blank');
+            };
+          }
+        }
+      }
+
+      function closeStreetView() {
+        const modal = document.getElementById('streetview-modal');
+        if (modal) modal.classList.remove('open');
+        if (_naverPanorama) {
+          try { _naverPanorama.destroy(); } catch (e) { }
+          _naverPanorama = null;
+        }
+        const container = document.getElementById('streetview-container');
+        if (container) container.innerHTML = '';
+      }
+
+      function resetNaverKey() {
+        localStorage.removeItem('naver_client_id');
+        // Remove loaded script so it can be re-loaded with new key
+        const s = document.getElementById('naver-maps-api-script');
+        if (s) s.remove();
+        window.naver = undefined;
+        showToast('Client ID가 초기화되었습니다.', 'info');
+        openNaverKeyModal((id) => openStreetViewWithKey(id));
+      }
+
       // Start
       document.addEventListener('DOMContentLoaded', init);
 
@@ -8011,6 +8633,58 @@
         updateRouteSVG();
       });
     </script>
+
+  <!-- ====== NAVER STREET VIEW MODAL ====== -->
+  <div id="streetview-modal">
+    <div id="streetview-header">
+      <div id="streetview-naver-logo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <rect width="24" height="24" rx="4" fill="#03C75A"/>
+          <path d="M7 17V7l5 7.5V7h5v10l-5-7.5V17H7z" fill="white"/>
+        </svg>
+        NAVER 거리뷰
+      </div>
+      <div id="streetview-title">도착지 거리뷰</div>
+      <button id="streetview-close-btn" onclick="closeStreetView()" title="닫기"></button>
+    </div>
+    <div id="streetview-container"></div>
+    <div id="streetview-status"></div>
+    <button id="streetview-open-naver-btn"> 네이버 지도에서 열기</button>
+  </div>
+
+  <!-- ====== NAVER CLIENT ID MODAL ====== -->
+  <div id="naver-key-modal">
+    <div class="naver-key-box">
+      <div class="naver-key-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <rect width="24" height="24" rx="5" fill="#03C75A"/>
+          <path d="M7 17V7l5 7.5V7h5v10l-5-7.5V17H7z" fill="white"/>
+        </svg>
+        네이버 거리뷰 API 설정
+      </div>
+      <div class="naver-key-desc">
+        네이버 거리뷰(파노라마)를 사용하려면 <strong>네이버 클라우드 플랫폼(NCP)</strong>의
+        <strong>Client ID</strong>가 필요합니다.<br><br>
+         <a href="https://www.ncloud.com/product/applicationService/maps" target="_blank">네이버 클라우드 플랫폼 Maps API </a><br>
+        콘솔에서 "AINAVER API  Application 등록" 후 <strong>Web Dynamic Map</strong> 선택 시 Client ID 발급.
+      </div>
+      <div class="naver-key-input-row">
+        <input
+          type="text"
+          id="naver-client-id-input"
+          placeholder="NCP Client ID 입력..."
+          onkeydown="if(event.key==='Enter') confirmNaverKey()"
+        >
+        <button class="naver-key-confirm-btn" onclick="confirmNaverKey()">확인</button>
+      </div>
+      <div class="naver-key-note">
+         입력한 Client ID는 브라우저의 로컬 스토리지에만 저장되며, 외부로 전송되지 않습니다.<br>
+        키 재설정 시 다시 거리뷰 버튼을 클릭하세요.
+      </div>
+      <button class="naver-key-cancel-btn" onclick="closeNaverKeyModal()">취소</button>
+    </div>
+  </div>
+
 </body>
 
 </html>
