@@ -2865,16 +2865,29 @@
     /* ============ NAVER STREETVIEW MODAL ============ */
     #streetview-modal {
       position: fixed;
-      inset: 0;
+      top: var(--header-h, 56px);
+      bottom: 0;
+      right: 0;
+      width: 0;
       z-index: 9000;
       display: none;
       flex-direction: column;
       background: #000;
+      box-shadow: -5px 0 30px rgba(0, 0, 0, 0.5);
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-left: 1px solid var(--border-main);
+      overflow: hidden;
     }
 
     #streetview-modal.open {
       display: flex;
-      animation: modalFadeIn 0.3s ease;
+      width: 50%;
+    }
+
+    @media (max-width: 1000px) {
+      #streetview-modal.open {
+        width: 100%;
+      }
     }
 
     @keyframes modalFadeIn {
@@ -2888,18 +2901,19 @@
     }
 
     #streetview-header {
-      position: fixed;
-      top: var(--header-h, 50px);
+      position: sticky;
+      top: 0;
       left: 0;
       right: 0;
-      height: 54px;
-      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.75) 70%, transparent 100%);
+      height: 52px;
+      background: #111;
       display: flex;
       align-items: center;
       padding: 0 14px;
       gap: 10px;
-      z-index: 99999;
-      pointer-events: auto;
+      z-index: 10;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      flex-shrink: 0;
     }
 
     #streetview-header>* {
@@ -8986,6 +9000,14 @@
           status.textContent = '네이버 거리뷰 불러오는 중...';
         }
         if (naverBtn) naverBtn.style.display = 'none';
+
+        // Auto-close naver dir map if open to avoid overlap
+        if (typeof closeNaverDirMap === 'function') closeNaverDirMap();
+
+        // Focus map on custom location
+        if (customLat && customLng && state.map) {
+          state.map.setView([customLat, customLng], 14);
+        }
 
         // Update title
         const titleEl = document.getElementById('streetview-title');
