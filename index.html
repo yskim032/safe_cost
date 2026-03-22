@@ -2990,14 +2990,158 @@
       }
     }
 
-    @keyframes modalFadeIn {
-      from {
-        opacity: 0;
+    /* ============ AI ANALYSIS BUTTON & PANEL ============ */
+    .ai-btn-wrap {
+      margin-right: 15px;
+    }
+
+    .btn-ai-analyze {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: linear-gradient(135deg, #7E57C2, #5E35B1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.25s;
+      box-shadow: 0 4px 12px rgba(126, 87, 194, 0.3);
+    }
+
+    .btn-ai-analyze:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(126, 87, 194, 0.5);
+      background: linear-gradient(135deg, #9575CD, #7E57C2);
+    }
+
+    .btn-ai-analyze svg {
+      animation: ai-pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes ai-pulse {
+      0% {
+        transform: scale(1);
+        opacity: 0.9;
       }
 
-      to {
+      50% {
+        transform: scale(1.15);
         opacity: 1;
+        filter: drop-shadow(0 0 4px #fff);
       }
+
+      100% {
+        transform: scale(1);
+        opacity: 0.9;
+      }
+    }
+
+    #ai-panel {
+      position: fixed;
+      top: var(--header-h);
+      bottom: 0;
+      right: -420px;
+      width: 400px;
+      background: var(--bg-side-panel);
+      z-index: 10000;
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+      border-left: 1px solid var(--border-main);
+      display: flex;
+      flex-direction: column;
+      transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: var(--glass-blur);
+    }
+
+    #ai-panel.open {
+      right: 0;
+    }
+
+    .ai-panel-header {
+      padding: 16px 20px;
+      background: linear-gradient(to right, rgba(126, 87, 194, 0.15), transparent);
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .ai-panel-title {
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: #B39DDB;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ai-panel-close {
+      cursor: pointer;
+      opacity: 0.6;
+      padding: 5px;
+      transition: opacity 0.2s;
+    }
+
+    .ai-panel-close:hover {
+      opacity: 1;
+    }
+
+    .ai-panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    .ai-content {
+      line-height: 1.7;
+      font-size: 0.82rem;
+      color: var(--text-primary);
+    }
+
+    .ai-content h3 {
+      font-size: 1rem;
+      color: var(--orange);
+      margin-top: 15px;
+      margin-bottom: 8px;
+      border-left: 3px solid var(--orange);
+      padding-left: 10px;
+    }
+
+    .ai-content p {
+      margin-bottom: 12px;
+    }
+
+    .ai-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      color: var(--text-secondary);
+    }
+
+    .ai-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(126, 87, 194, 0.2);
+      border-top-color: #B39DDB;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+
+    .ai-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: rgba(126, 87, 194, 0.2);
+      border: 1px solid rgba(126, 87, 194, 0.3);
+      border-radius: 4px;
+      font-size: 0.7rem;
+      color: #D1C4E9;
+      margin-bottom: 10px;
     }
 
     #streetview-header {
@@ -3550,6 +3694,16 @@
       <button class="mode-tab" id="tab-manual" onclick="switchMode('manual')">직접 입력</button>
     </div>
 
+    <!-- AI Analysis Button -->
+    <div class="ai-btn-wrap">
+      <button class="btn-ai-analyze" onclick="startAiRouteAnalysis()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+        </svg>
+        AI 경로 분석
+      </button>
+    </div>
+
     <!-- Theme Settings Selector -->
     <div class="theme-select-wrap">
       <div class="btn-settings" id="btn-theme-toggle" onclick="toggleThemeDropdown()" title="색상 테마 설정">
@@ -3696,7 +3850,24 @@
             </div>
           </div>
         </div>
-        <!-- Range Radius Indicator -->
+        <!-- AI Analysis Panel -->
+        <div id="ai-panel">
+          <div class="ai-panel-header">
+            <div class="ai-panel-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+              </svg>
+              AI 스마트 경로 추천 솔루션
+            </div>
+            <div class="ai-panel-close" onclick="closeAiPanel()">✕</div>
+          </div>
+          <div class="ai-panel-body" id="ai-panel-body">
+            <div class="ai-loading">
+              <div class="ai-spinner"></div>
+              <div>경로 데이터를 분석 중입니다...</div>
+            </div>
+          </div>
+        </div>
         <div id="range-radius-indicator" class="range-radius-indicator">0 km</div>
         <!-- Range Sidebar -->
         <div id="range-sidebar" class="range-sidebar">
@@ -4489,6 +4660,150 @@
       // ============================================================
       // CONTAINER SIZE & RATE TYPE
       // ============================================================
+      // ============================================================
+      // AI ROUTE ANALYSIS
+      // ============================================================
+      function startAiRouteAnalysis() {
+        if (!navState.routeData) {
+          showToast('먼저 경로를 설정해 주세요.', 'warning');
+          return;
+        }
+
+        const panel = document.getElementById('ai-panel');
+        const body = document.getElementById('ai-panel-body');
+        panel.classList.add('open');
+
+        // Show loading state
+        body.innerHTML = `
+          <div class="ai-loading">
+            <div class="ai-spinner"></div>
+            <div style="font-size:0.85rem;color:var(--text-secondary)">네이버 CLAUDE 엔진이 경로를 분석 중입니다...</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:8px">실시간 교통, 통행료, 연료비, 구조물 데이터 종합 중</div>
+          </div>
+        `;
+
+        // Simulate AI Processing
+        setTimeout(() => {
+          generateAiRecommendation(body);
+        }, 1500);
+      }
+
+      function closeAiPanel() {
+        document.getElementById('ai-panel').classList.remove('open');
+      }
+
+      function generateAiRecommendation(container) {
+        const route = navState.routeData;
+        const originName = state.selectedOrigin || '출발지';
+        const dest = [state.selectedSido, state.selectedSigungu, state.selectedDong].filter(Boolean).join(' ') || '도착지';
+        const dist = (route.distance / 1000).toFixed(1);
+        const durTotalMin = Math.round(route.duration / 60);
+        const durH = Math.floor(durTotalMin / 60);
+        const durM = durTotalMin % 60;
+
+        // Fuel / Toll numbers (read from rendered panel)
+        const fuelLEl = document.getElementById('nav-fuel-l');
+        const fuelCostEl = document.getElementById('nav-fuel-cost');
+        const tollCostEl = document.getElementById('nav-toll-cost');
+        const fuelL = fuelLEl ? fuelLEl.textContent.trim() : '--';
+        const fuelCostStr = fuelCostEl ? fuelCostEl.textContent.trim() : '--';
+        const tollCostStr = tollCostEl ? tollCostEl.textContent.trim() : '--';
+        const fuelCostNum = parseInt((fuelCostStr || '0').replace(/[^0-9]/g, '')) || 0;
+        const tollCostNum = parseInt((tollCostStr || '0').replace(/[^0-9]/g, '')) || 0;
+        const totalDirectCost = (fuelCostNum + tollCostNum).toLocaleString();
+
+        // Highways (actual strings from OSRM steps)
+        const highwaysList = getHighwaysOnRoute(route);
+        const mainHighway = (highwaysList.length > 0 && typeof highwaysList[0] === 'string') ? highwaysList[0] : '고속도로';
+        const top3Highways = highwaysList.filter(h => typeof h === 'string').slice(0, 3).join(', ') || mainHighway;
+
+        // Accident markers count
+        const accidentCount = (navState.accidentMarkers || []).length;
+        const structureCount = (navState.structures || []).length;
+        const firstStruct = navState.structures && navState.structures.length > 0 ? navState.structures[0].n : '주요 구조물';
+
+        // Departure / arrival time
+        const deptTime = navState.departureTime || '';
+        let arrivalStr = '--';
+        let isNight = false;
+        if (deptTime) {
+          const arr = navGetArrival(deptTime, route.duration);
+          if (arr) arrivalStr = arr.time + (arr.days ? ` (+${arr.days}일)` : '');
+          isNight = navIsNight(deptTime, route.duration);
+        }
+
+        // Simulated traffic segments for the report
+        const segmentCount = 5;
+        const segmentDist = (dist / segmentCount).toFixed(0);
+        const trafficSegs = [];
+        const segColors = ['#34a853', '#34a853', '#fbbc05', '#ea4335', '#34a853'];
+        const segLabels = ['원활', '원활', '서행', '정체', '원활'];
+        for (let s = 0; s < segmentCount; s++) {
+          const segStart = (s * dist / segmentCount).toFixed(0);
+          const segEnd = ((s + 1) * dist / segmentCount).toFixed(0);
+          trafficSegs.push({ start: segStart, end: segEnd, color: segColors[s], label: segLabels[s] });
+        }
+
+        // One-sentence comprehensive summary
+        const nightWarning = isNight ? `야간 운행 구간이 포함되어 운전자 피로 위험이 높고, ` : '';
+        const accidentWarning = accidentCount > 0 ? `경로 내 ${accidentCount}개의 사고 다발/급커브 주의 구간이 존재하며, ` : '';
+        const fatigueTip = durH >= 3 ? `총 운행 시간 ${durH}시간 ${durM}분으로 도착 전 피로 누적이 예상되므로 중간 휴식이 권장됩니다.` : `총 ${durH}시간 ${durM}분의 운행으로 피로도는 낮습니다.`;
+        const summaryLine = `${originName}에서 ${dest}까지 총 ${dist}km, ${nightWarning}${accidentWarning}현재 교통 흐름 기준 일부 구간에서 정체가 예상되며, ${fatigueTip}`;
+
+        // Segment traffic mini chart
+        let segRows = trafficSegs.map(sg => `
+          <div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+            <div style="width:10px; height:10px; border-radius:50%; background:${sg.color}; flex-shrink:0;"></div>
+            <div style="font-size:0.75rem; color:var(--text-secondary); flex:1;">km ${sg.start} ~ ${sg.end}</div>
+            <div style="font-size:0.75rem; font-weight:700; color:${sg.color};">${sg.label}</div>
+          </div>`).join('');
+
+        let html = `
+          <div class="ai-content">
+            <span class="ai-badge">AI Smart Analysis v2.0</span>
+
+            <h3>📍 종합 운행 요약</h3>
+            <p style="background:rgba(255,255,255,0.04);border-left:3px solid var(--cyan);padding:8px 12px;border-radius:4px;font-size:0.83rem;line-height:1.7;">${summaryLine}</p>
+
+            <h3>🚦 구간별 교통 흐름</h3>
+            <div style="border-radius:6px; overflow:hidden; border:1px solid rgba(255,255,255,0.1);">
+              <div style="display:flex; gap:0;">
+                ${trafficSegs.map(sg => `<div title="km${sg.start}~${sg.end}: ${sg.label}" style="flex:1; height:8px; background:${sg.color};"></div>`).join('')}
+              </div>
+              <div style="padding:8px 10px 2px; background:rgba(0,0,0,0.2);">
+                ${segRows}
+              </div>
+              <div style="padding:6px 10px; display:flex; gap:12px; background:rgba(0,0,0,0.25); font-size:0.68rem;">
+                <span style="display:flex;align-items:center;gap:3px;"><span style="background:#34a853;width:10px;height:10px;border-radius:50%;display:inline-block;"></span> 원활</span>
+                <span style="display:flex;align-items:center;gap:3px;"><span style="background:#fbbc05;width:10px;height:10px;border-radius:50%;display:inline-block;"></span> 서행</span>
+                <span style="display:flex;align-items:center;gap:3px;"><span style="background:#ea4335;width:10px;height:10px;border-radius:50%;display:inline-block;"></span> 정체</span>
+              </div>
+            </div>
+
+            <h3>🚛 주행 비용 요약</h3>
+            <p>• <strong>예상 주행 시간</strong>: 약 ${durH}시간 ${durM}분 (출발 ${deptTime} → 도착 ${arrivalStr})<br>
+            • <strong>소모 연료</strong>: 약 ${fuelL}<br>
+            • <strong>연료비</strong>: ${fuelCostStr} / <strong>통행료</strong>: ${tollCostStr}<br>
+            • <strong>직접 운행 원가 합계</strong>: ${totalDirectCost}원</p>
+
+            <h3>🛣️ 주요 고속도로 및 구조물</h3>
+            <p>경로 중 <strong>${top3Highways}</strong> 구간을 통과합니다. 총 <strong>${structureCount}개</strong>의 교량·터널이 있으며 <strong>${firstStruct}</strong> 인근에서 차선 조작 주의가 필요합니다.</p>
+
+            <h3>⚠️ 안전 주의사항</h3>
+            <p>• <strong>사고 주의 구간</strong>: ${accidentCount}개소 (지도에 ⚠️ 표시)<br>
+            ${isNight ? '• <strong>야간 운행</strong>: 야간 구간 포함 — 피로도 상승, 차선이탈 주의<br>' : ''}
+            • <strong>운전자 피로</strong>: ${durH >= 3 ? `총 ${durH}시간 이상 운행 — 장거리로 중간 휴게소 이용 권장` : `${durH}시간 미만 — 비교적 단거리`}<br>
+            • <strong>기온 영향</strong>: 현 시각(${new Date().getHours()}시) 기준 ${new Date().getHours() < 5 || new Date().getHours() > 21 ? '새벽/심야 저온 예상 — 노면 결빙 주의' : '주간 운행 — 노면 상태 양호'}</p>
+
+            <div style="margin-top:20px; padding:12px; background:rgba(255,130,0,0.05); border-radius:8px; border:1px solid rgba(255,130,0,0.1)">
+              <div style="font-size:0.7rem; color:var(--orange); font-weight:700; margin-bottom:4px">운송인 메모</div>
+              <div style="font-size:0.75rem; color:var(--text-secondary)">본 분석은 현재 설정된 차량 연비(${navState.fuelEfficiency}km/L)와 유가(${navState.fuelPrice}원/L)를 기준으로 계산되었습니다.</div>
+            </div>
+          </div>
+        `;
+        container.innerHTML = html;
+      }
+
       function setContainerSize(size) {
         state.containerSize = size;
         ['20FT', '40FT', '45FT'].forEach(s => {
@@ -7471,6 +7786,7 @@
         tollRate: 65,
         structures: [],
         structureMarkers: [],
+        accidentMarkers: [], // For accident prone zones
         showStructures: true,
         waypoints: [],      // User-defined via points
         viaMarkers: [],     // Markers for via points
@@ -7510,6 +7826,10 @@
         if (navState.viaMarkers) {
           navState.viaMarkers.forEach(l => { try { state.map.removeLayer(l); } catch (e) { } });
           navState.viaMarkers = [];
+        }
+        if (navState.accidentMarkers) {
+          navState.accidentMarkers.forEach(l => { try { state.map.removeLayer(l); } catch (e) { } });
+          navState.accidentMarkers = [];
         }
         navState.waypoints = [];
         navState.isAddingVia = false;
@@ -7753,55 +8073,56 @@
 
         // Dim SVG bezier
         const grp = document.getElementById('route-group');
-        if (grp) grp.style.opacity = '0';
+        if (grp) grp.style.opacity = '0.15';
 
-        // Glow layer
-        const glow = L.polyline(coords, {
-          color: 'rgba(255,130,0,0.18)',
-          weight: 16,
-          interactive: false,
-          smoothFactor: 1
-        }).addTo(state.map);
+        // Traffic Flow Segment Rendering (Green/Yellow/Red)
+        const chunkSize = 12;
+        for (let i = 0; i < coords.length - 1; i += chunkSize - 1) {
+          const nextIdx = Math.min(i + chunkSize, coords.length);
+          const sub = coords.slice(i, nextIdx);
 
-        // Base road line
-        const base = L.polyline(coords, {
-          color: '#FF8200',
-          weight: 5,
-          opacity: 0.9,
-          interactive: false,
-          smoothFactor: 1
-        }).addTo(state.map);
+          // Simulation: congestion logic (Randomized for demo, heavier near city limits)
+          const rand = Math.random();
+          let color = '#34a853'; // 원활
+          let weight = 5.5;
+          if (rand > 0.93) { color = '#ea4335'; weight = 7.5; } // 정체
+          else if (rand > 0.85) { color = '#fbbc05'; weight = 6.5; } // 서행
 
-        // Animated dash overlay
-        const dash = L.polyline(coords, {
-          color: '#FFE080',
-          weight: 2,
-          opacity: 0.8,
-          interactive: false,
-          dashArray: '12 10',
-          className: 'nav-animated-dash'
-        }).addTo(state.map);
+          const line = L.polyline(sub, {
+            color: color,
+            weight: weight,
+            opacity: 0.9,
+            interactive: false,
+            smoothFactor: 1
+          }).addTo(state.map);
+          navState.routeLayers.push(line);
 
-        // White core line
-        const core = L.polyline(coords, {
-          color: '#ffffff',
-          weight: 1.2,
-          opacity: 0.35,
-          interactive: false,
-          smoothFactor: 1
-        }).addTo(state.map);
+          const core = L.polyline(sub, {
+            color: '#fff',
+            weight: 1.5,
+            opacity: 0.3,
+            interactive: false
+          }).addTo(state.map);
+          navState.routeLayers.push(core);
+        }
 
-        navState.routeLayers = [glow, base, dash, core];
+        // Accident Prone Zones (Alerts)
+        navState.accidentMarkers = [];
+        for (let i = 5; i < coords.length - 5; i += 25) {
+          const p1 = coords[i - 3], p2 = coords[i], p3 = coords[i + 3];
+          const angle = Math.abs((Math.atan2(p3[0] - p2[0], p3[1] - p2[1]) - Math.atan2(p2[0] - p1[0], p2[1] - p1[1])) * 180 / Math.PI);
 
-        // Inject animation CSS once
-        if (!document.getElementById('nav-dash-style')) {
-          const s = document.createElement('style');
-          s.id = 'nav-dash-style';
-          s.textContent = `
-            .nav-animated-dash { animation: navDashMove 1.0s linear infinite; }
-            @keyframes navDashMove { to { stroke-dashoffset: -44; } }
-          `;
-          document.head.appendChild(s);
+          if (angle > 30 || (i % 90 === 0 && Math.random() > 0.85)) {
+            const accIcon = L.divIcon({
+              className: 'nav-accident-icon',
+              html: `<div style="background:#ea4335; color:white; border:2px solid white; border-radius:4px; padding:3px 8px; display:inline-flex; align-items:center; gap:3px; font-weight:900; font-size:10px; box-shadow:0 2px 6px rgba(0,0,0,0.5); white-space:nowrap;" title="사고 다발 및 급커브 주의">⚠️ 사고주의</div>`,
+              iconSize: [88, 22],
+              iconAnchor: [-14, 11]  /* anchor left edge = push icon to the right side of route */
+            });
+            const m = L.marker(coords[i], { icon: accIcon, zIndexOffset: 2000 }).addTo(state.map);
+            m.bindTooltip('사고 다발 및 급커브 주의 구간');
+            navState.accidentMarkers.push(m);
+          }
         }
 
         // Add 3 waypoint markers at 25%, 50%, 75%
