@@ -1400,9 +1400,29 @@
       border-color: rgba(0, 212, 170, 0.4);
     }
 
-    .toast.error {
-      border-color: rgba(255, 71, 87, 0.4);
-      color: var(--danger);
+    /* Mini Button for Nav Panel */
+    .nav-mini-btn {
+      background: rgba(0, 212, 170, 0.1);
+      border: 1px solid rgba(0, 212, 170, 0.3);
+      color: var(--cyan);
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .nav-mini-btn:hover {
+      background: var(--cyan);
+      color: #000;
+      border-color: var(--cyan);
+    }
+
+    .nav-mini-btn.active {
+      background: var(--cyan);
+      color: #000;
+      box-shadow: 0 0 8px rgba(0, 212, 170, 0.4);
     }
 
     @keyframes toastIn {
@@ -1426,6 +1446,86 @@
         opacity: 0;
         transform: translateX(30px);
       }
+    }
+
+    /* Structure Toggle Button on Map */
+    .map-toggle-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: rgba(0, 18, 45, 0.85);
+      border: 1px solid rgba(0, 200, 255, 0.4);
+      color: var(--text-primary);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      font-family: inherit;
+    }
+
+    .map-toggle-btn:hover {
+      background: rgba(0, 40, 80, 0.95);
+      border-color: var(--cyan);
+      transform: translateY(-1px);
+    }
+
+    .map-toggle-btn.off {
+      border-color: var(--text-muted);
+      color: var(--text-muted);
+      background: rgba(0, 10, 25, 0.5);
+    }
+
+    .map-toggle-btn span::before {
+      content: '●';
+      margin-right: 5px;
+      color: var(--success);
+      font-size: 0.6rem;
+    }
+
+    .map-toggle-btn.off span::before {
+      color: var(--text-muted);
+    }
+
+    /* Navigation Panel Toggle Switch */
+    .nav-toggle {
+      width: 28px;
+      height: 14px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .nav-toggle.active {
+      background: rgba(0, 212, 170, 0.2);
+      border-color: rgba(0, 212, 170, 0.5);
+    }
+
+    .nav-toggle-thumb {
+      width: 10px;
+      height: 10px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .nav-toggle.active .nav-toggle-thumb {
+      left: 15px;
+      background: var(--success);
+      box-shadow: 0 0 6px rgba(0, 212, 170, 0.6);
     }
 
     /* ============ ROUTE ANIMATION SVG ============ */
@@ -3341,9 +3441,9 @@
     }
 
     /* Activator button */
-    #naver-dir-toggle-btn {
+    #naver-dir-toggle-btn,
+    #naver-highway-btn {
       position: absolute;
-      bottom: 132px;
       left: 12px;
       z-index: 1001;
       width: 44px;
@@ -3365,12 +3465,22 @@
       font-family: "Noto Sans KR", sans-serif;
     }
 
-    #naver-dir-toggle-btn.visible {
+    #naver-dir-toggle-btn {
+      bottom: 132px;
+    }
+
+    #naver-highway-btn {
+      bottom: 182px;
+    }
+
+    #naver-dir-toggle-btn.visible,
+    #naver-highway-btn.visible {
       display: flex;
       animation: popIn 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28);
     }
 
-    #naver-dir-toggle-btn:hover {
+    #naver-dir-toggle-btn:hover,
+    #naver-highway-btn:hover {
       transform: scale(1.08);
       background: #02a34d;
     }
@@ -3522,6 +3632,10 @@
     <div id="map-mode">
       <div id="map-container">
         <div id="map"></div>
+        <!-- Structure Toggle Button -->
+        <button id="structure-toggle-btn" class="map-toggle-btn" onclick="toggleStructures()" title="교량/터널 표시 On/Off">
+          <span>🌉 교량/터널 표시</span>
+        </button>
         <!-- Range Explorer Button -->
         <div id="range-explorer-btn" class="range-btn" title="반경 운임 분석 (클릭: 시작, 더블클릭: 종료)">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -3532,20 +3646,29 @@
         </div>
         <!-- Navigation Route Button -->
         <div id="nav-route-btn" class="nav-route-btn" title="경로 안내 분석 (실제 도로 경로)">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="5" cy="18" r="3"></circle>
-            <circle cx="19" cy="6" r="3"></circle>
-            <path d="M12 18H8.5a3.5 3.5 0 0 1 0-7h7a3.5 3.5 0 0 0 0-7H12"></path>
-          </svg>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:2px">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="5" cy="18" r="3"></circle>
+              <circle cx="19" cy="6" r="3"></circle>
+              <path d="M12 18H8.5a3.5 3.5 0 0 1 0-7h7a3.5 3.5 0 0 0 0-7H12"></path>
+            </svg>
+            <span style="font-size: 0.52rem; font-weight: 800; font-family: 'Noto Sans KR', sans-serif;">경로안내</span>
+          </div>
         </div>
-        <!-- Naver Street View Button (shown when dest marker is set) -->
+        <!-- Naver Map Buttons -->
         <button id="naver-dir-toggle-btn" onclick="openNaverDirMap()" title="네이버 지도 길찾기 연동">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5">
             <polyline points="9 11 12 14 22 4"></polyline>
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
           </svg>
           <span>네이버맵</span>
+        </button>
+        <button id="naver-highway-btn" onclick="openNaverDirMap(true)" title="네이버 고속도로 우선 경로">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M13 18l5-5-5-5M6 13h11" />
+          </svg>
+          <span>고속도로</span>
         </button>
         <button id="streetview-map-btn" onclick="openStreetView()" title="네이버 거리뷰 (도착지 핀 위치)">
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
@@ -4103,6 +4226,68 @@
         { id: 'night', name: '심야(22:00-06:00)', nameEn: 'Night', rate: 0.20, category: 'time' },
       ];
 
+      // Additional details for specific structures (Length, etc.)
+      const STRUCTURE_DETAILS = {
+        '인천대교': { l: '18,384m' },
+        '영종대교': { l: '4,420m' },
+        '거가대교': { l: '8,202m' },
+        '거가대로': { l: '8,202m' },
+        '광안대교': { l: '7,420m' },
+        '서해대교': { l: '7,310m' },
+        '마창대교': { l: '1,700m' },
+        '부산항대교': { l: '3,331m' },
+        '남항대교': { l: '1,925m' },
+        '을숙도대교': { l: '5,205m' },
+        '신행주대교': { l: '1,460m' },
+        '방화대교': { l: '2,559m' },
+        '가양대교': { l: '1,700m' },
+        '성산대교': { l: '1,410m' },
+        '양화대교': { l: '1,053m' },
+        '당산철교': { l: '1,360m' },
+        '서강대교': { l: '1,320m' },
+        '마포대교': { l: '1,400m' },
+        '원효대교': { l: '1,470m' },
+        '한강철교': { l: '1,110m' },
+        '한강대교': { l: '1,005m' },
+        '동작대교': { l: '1,330m' },
+        '반포대교': { l: '1,495m' },
+        '잠수교': { l: '795m' },
+        '한남대교': { l: '917m' },
+        '동호대교': { l: '1,220m' },
+        '성수대교': { l: '1,160m' },
+        '영동대교': { l: '1,065m' },
+        '청담대교': { l: '1,211m' },
+        '잠실대교': { l: '1,280m' },
+        '잠실철교': { l: '1,270m' },
+        '올림픽대교': { l: '1,470m' },
+        '천호대교': { l: '1,150m' },
+        '광진교': { l: '1,056m' },
+        '구리암사대교': { l: '1,133m' },
+        '강동대교': { l: '1,126m' },
+        '미사대교': { l: '1,530m' },
+        '팔당대교': { l: '935m' },
+        '인제양양터널': { l: '10,962m' },
+        '재약산터널': { l: '7,982m' },
+        '금정산터널': { l: '7,121m' },
+        '배후령터널': { l: '5,057m' },
+        '사패산터널': { l: '3,997m' },
+        '죽령터널': { l: '4,600m' },
+        '상주터널': { l: '1,860m' },
+        '각흘관터널': { l: '1,120m' },
+        '구덕터널': { l: '1,870m' },
+        '만덕2터널': { l: '1,740m' },
+        '백양터널': { l: '2,340m' },
+        '수영터널': { l: '1,580m' },
+        '황령터널': { l: '1,830m' },
+        '문현터널': { l: '1,080m' },
+        '수정산터널': { l: '2,356m' },
+        '가덕해저터널': { l: '3,660m' },
+        '대흥지하차도': { l: '465m' },
+        '대흥길': { l: '465m' }, // '대흥길'로 표시되는 경우 대비
+        '신월여의지하도로': { l: '7,530m' },
+        '서부간선지하도로': { l: '10,330m' }
+      };
+
       // Origins that have a pre-included surcharge
       const PORT_SURCHARGE_INCLUDED = {
         '인천신항': 0.20,
@@ -4156,6 +4341,7 @@
         selectedSido: null,
         selectedSigungu: null,
         selectedDong: null,
+        selectedOriginSido: null,
         // Shared
         containerSize: '40FT',
         rateType: '위탁',
@@ -4998,6 +5184,11 @@
         syncSVGSize();
         map.on('resize', syncSVGSize);
 
+        map.on('click', e => {
+          if (typeof navState !== 'undefined' && navState.active && navState.isAddingVia) {
+            addViaPoint(e.latlng);
+          }
+        });
         return map;
       }
 
@@ -5586,6 +5777,10 @@
         state.selectedOrigin = name;
         state.selectedPortMarker = marker;
         state.originLatLng = L.latLng(coords[0], coords[1]);
+
+        const loc = PORT_LOCATION[name];
+        if (loc) state.selectedOriginSido = loc.sido;
+
         marker.setIcon(createPortIcon(name, true));
 
 
@@ -7275,7 +7470,11 @@
         fuelPrice: 1750,
         tollRate: 65,
         structures: [],
-        structureMarkers: []
+        structureMarkers: [],
+        showStructures: true,
+        waypoints: [],      // User-defined via points
+        viaMarkers: [],     // Markers for via points
+        isAddingVia: false  // Mode for clicking to add via point
       };
 
       function openNavPanel() {
@@ -7308,6 +7507,12 @@
         navState.routeLayers = [];
         navState.waypointMarkers.forEach(l => { try { state.map.removeLayer(l); } catch (e) { } });
         navState.waypointMarkers = [];
+        if (navState.viaMarkers) {
+          navState.viaMarkers.forEach(l => { try { state.map.removeLayer(l); } catch (e) { } });
+          navState.viaMarkers = [];
+        }
+        navState.waypoints = [];
+        navState.isAddingVia = false;
         navState.waypointPrices = [null, null, null];
         if (navState.structureMarkers) {
           navState.structureMarkers.forEach(l => { try { state.map.removeLayer(l); } catch (e) { } });
@@ -7327,25 +7532,26 @@
           return;
         }
 
-        body.innerHTML = `<div class="nav-status-box"><div class="nav-spin"></div>실제 도로 경로를 불러오는 중...</div>`;
+        body.innerHTML = getNavWaypointHTML() + `<div class="nav-status-box"><div class="nav-spin"></div>실제 도로 경로를 불러오는 중...</div>`;
 
         try {
-          const route = await fetchOSRMRoute(state.originLatLng, state.destLatLng);
+          const route = await fetchOSRMRoute(state.originLatLng, state.destLatLng, navState.waypoints);
           navState.routeData = route;
           drawNavRealRoute(route);
           renderNavPanel(route);
         } catch (e) {
-          body.innerHTML = `<div class="nav-status-box">
+          body.innerHTML = getNavWaypointHTML() + `<div class="nav-status-box">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-            경로 불러오기 실패. 네트워크를 확인하세요.
+            경로 분석 실패. 직접 경유지를 추가하여 다시 시도해 보세요.
           </div>`;
         }
       }
 
-      async function fetchOSRMRoute(originLL, destLL) {
-        const url = `https://router.project-osrm.org/route/v1/driving/` +
-          `${originLL.lng},${originLL.lat};${destLL.lng},${destLL.lat}` +
-          `?overview=full&geometries=geojson`;
+      async function fetchOSRMRoute(originLL, destLL, vips = []) {
+        const pts = [originLL, ...vips, destLL];
+        const pointStr = pts.map(p => `${p.lng},${p.lat}`).join(';');
+        // steps=true to get road names
+        const url = `https://router.project-osrm.org/route/v1/driving/${pointStr}?overview=full&geometries=geojson&steps=true`;
         const res = await fetch(url);
         if (!res.ok) throw new Error('OSRM error');
         const data = await res.json();
@@ -7371,17 +7577,94 @@
         minLat -= margin; maxLat += margin;
         minLng -= margin; maxLng += margin;
 
+        // 1. 경로가 지나는 시도 목록을 실제로 추출 (샘플링)
+        const activeRouteSidos = new Set();
+        if (state.geoJsonLayer) {
+          // 경로 좌표 중 30개 지점을 샘플링하여 어느 시도에 속하는지 확인
+          const sampleCount = 30;
+          const step = Math.max(1, Math.floor(routeCoords.length / sampleCount));
+          for (let i = 0; i < routeCoords.length; i += step) {
+            const pt = L.latLng(routeCoords[i][0], routeCoords[i][1]);
+            state.geoJsonLayer.eachLayer(layer => {
+              // 바운딩 박스 체크 (가장 빠름)
+              if (layer.getBounds().contains(pt)) {
+                const name = layer.feature.properties.name || layer.feature.properties.Name;
+                if (name) activeRouteSidos.add(name.substring(0, 2));
+              }
+            });
+          }
+        }
+
+        // 인접 시도 매핑 (보조용)
+        const ADJACENT_SIDOS = {
+          '서울': ['경기', '인천'],
+          '인천': ['서울', '경기'],
+          '경기': ['서울', '인천', '강원', '충북', '충남'],
+          '부산': ['울산', '경남'],
+          '울산': ['부산', '경남', '경북'],
+          '경남': ['부산', '대구', '울산', '전남', '전북', '경북'],
+          '대구': ['경북', '경남'],
+          '경북': ['대구', '울산', '강원', '충북', '전북', '경남', '충남'],
+          '광주': ['전남', '전북'],
+          '전남': ['광주', '전북', '경남', '제주'],
+          '전북': ['전남', '충남', '충북', '경북', '경남'],
+          '대전': ['세종', '충남', '충북'],
+          '세종': ['대전', '충남', '충북'],
+          '충남': ['대전', '세종', '경기', '충북', '전북', '경북'],
+          '충북': ['경기', '강원', '대전', '세종', '충남', '경북', '전북'],
+          '강원': ['경기', '충북', '경북'],
+          '제주': ['전남']
+        };
+
+        const originSido = (state.selectedOriginSido || '').substring(0, 2);
+        const destSido = (state.selectedSido || '').substring(0, 2);
+
+        // 최종 유효 시도 목록 빌드 (추출된 시도 + 상하위 호환용 전국/무명)
+        const validSidos = new Set(activeRouteSidos);
+        validSidos.add('전국');
+        validSidos.add('');
+        if (originSido) {
+          validSidos.add(originSido);
+          if (ADJACENT_SIDOS[originSido]) ADJACENT_SIDOS[originSido].forEach(s => validSidos.add(s));
+        }
+        if (destSido) {
+          validSidos.add(destSido);
+          if (ADJACENT_SIDOS[destSido]) ADJACENT_SIDOS[destSido].forEach(s => validSidos.add(s));
+        }
+
         const candidates = STRUCTURES_DATA.filter(s => {
           const lat = s.ll[0], lng = s.ll[1];
-          return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
+          const sSido = (s.sd || '').substring(0, 2);
+
+          // 1. 공간 필터 (Bounding Box)
+          if (lat < minLat || lat > maxLat || lng < minLng || lng > maxLng) return false;
+
+          // 2. 지역명 매칭 필터 (이름에 포함된 지역명이 현재 유효 시도와 맞지 않으면 제외)
+          const match = s.n.match(/\((.*?)\)/);
+          if (match) {
+            const locInName = match[1].substring(0, 2);
+            // 이름에 붙은 지역명이 현재 경로의 시도나 인접 시도에 없으면 제외 (단, '본선' 등 제외)
+            const commonTerms = ['본선', '상행', '하행', '내륙', '해상', '중앙', '지선', '1교', '2교', '3교', '4교', '5교'];
+            if (!commonTerms.includes(locInName) && locInName.length >= 2) {
+              if (originSido && destSido && !validSidos.has(locInName)) return false;
+            }
+          }
+
+          // 3. 실제 행정구역(sd) 필터
+          if (originSido && destSido && sSido && !validSidos.has(sSido)) return false;
+
+          return true;
         });
 
         if (candidates.length === 0) return [];
 
-        const MAX_DIST_M = 150;
+        // 거리를 150m에서 25m로 대폭 축소하여 정확히 경로 상에 있는 것만 추출
+        const MAX_DIST_M = 25;
         const routeLll = routeCoords.map(c => L.latLng(c[0], c[1]));
         const matched = [];
-        const seenNames = new Set();
+
+        // 동일한 좌표 근처에 있는 중복 마커 방지를 위한 근사 좌표 집합
+        const seenLocs = new Set();
 
         candidates.forEach(s => {
           const sll = L.latLng(s.ll[0], s.ll[1]);
@@ -7390,10 +7673,12 @@
 
           for (let i = 0; i < routeLll.length - 1; i++) {
             const c1 = routeLll[i], c2 = routeLll[i + 1];
-            const lat_min = Math.min(c1.lat, c2.lat) - 0.002;
-            const lat_max = Math.max(c1.lat, c2.lat) + 0.002;
-            const lng_min = Math.min(c1.lng, c2.lng) - 0.002;
-            const lng_max = Math.max(c1.lng, c2.lng) + 0.002;
+
+            // 세그먼트 박스 체크 (성능 향상 및 엉뚱한 지역 방지)
+            const lat_min = Math.min(c1.lat, c2.lat) - 0.0005;
+            const lat_max = Math.max(c1.lat, c2.lat) + 0.0005;
+            const lng_min = Math.min(c1.lng, c2.lng) - 0.0005;
+            const lng_max = Math.max(c1.lng, c2.lng) + 0.0005;
             if (sll.lat < lat_min || sll.lat > lat_max || sll.lng < lng_min || sll.lng > lng_max) continue;
 
             const A = c1.lat - sll.lat, B = c1.lng - sll.lng;
@@ -7418,10 +7703,38 @@
           }
 
           if (minDist <= MAX_DIST_M) {
+            const matchingPt = routeLll[bestIdx];
+            let ptSido = null;
+            if (state.geoJsonLayer) {
+              state.geoJsonLayer.eachLayer(layer => {
+                // Bounds check identifies potential Sidos
+                if (layer.getBounds().contains(matchingPt)) {
+                  ptSido = (layer.feature.properties.name || layer.feature.properties.Name).substring(0, 2);
+                }
+              });
+            }
+
+            // 1. 이름 내 지역명(예: 대구, 부산)과 현재 지점 시도 비교
+            const matchInName = s.n.match(/\((.*?)\)/);
+            if (matchInName && ptSido) {
+              const locInName = matchInName[1].substring(0, 2);
+              const skipList = ['상행', '하행', '본선', '내륙', '해상', '중앙', '지선', '외측', '내측'];
+              if (!skipList.includes(locInName) && locInName.length >= 2) {
+                // 이름에 명시된 지역이 현재 지점의 지역과 다르면 실거리와 무관하게 제외
+                if (ptSido !== locInName) return;
+              }
+            }
+
+            // 2. 데이터 시도(s.sd)와 지점 시도 비교
+            const sSido = (s.sd || '').substring(0, 2);
+            if (ptSido && sSido && ptSido !== sSido) return;
+
             const routePct = bestIdx / routeLll.length;
-            const key = s.n + '_' + s.t;
-            if (!seenNames.has(key)) {
-              seenNames.add(key);
+            const baseName = s.n.replace(/\(.*\)/g, '').trim();
+            const locKey = baseName + '_' + s.ll[0].toFixed(3) + '_' + s.ll[1].toFixed(3);
+
+            if (!seenLocs.has(locKey)) {
+              seenLocs.add(locKey);
               matched.push({ ...s, dist: minDist, pct: routePct });
             }
           }
@@ -7521,13 +7834,43 @@
             const marker = L.marker([s.ll[0], s.ll[1]], {
               icon,
               zIndexOffset: 450
-            }).addTo(state.map);
-            marker.bindTooltip(`<strong style="color:${color}">${iconHash} ${s.n}</strong>`, { direction: 'top', offset: [0, -10], className: 'msc-tooltip' });
+            });
+
+            if (navState.showStructures) {
+              marker.addTo(state.map);
+            }
+
+            // 1. 전용 맵(STRUCTURE_DETAILS)에서 먼저 찾고, 없으면 데이터 자체의 l 필드 사용
+            const details = STRUCTURE_DETAILS[s.n];
+            const lengthStr = (details && details.l) ? details.l : s.l;
+            const lengthInfo = lengthStr ? `<br><span style="font-size:0.68rem;color:var(--text-muted);font-weight:normal;">길이: ${lengthStr}</span>` : '';
+
+            marker.bindTooltip(`<div style="text-align:center;"><strong style="color:${color}">${iconHash} ${s.n}</strong>${lengthInfo}</div>`, {
+              direction: 'top',
+              offset: [0, -10],
+              className: 'msc-tooltip'
+            });
             marker.on('click', () => {
               openStructureStreetView(s.ll[0], s.ll[1], s.n);
             });
             navState.structureMarkers.push(marker);
           });
+        }
+      }
+
+      function toggleStructures() {
+        navState.showStructures = !navState.showStructures;
+        const btn = document.getElementById('structure-toggle-btn');
+        const navToggle = document.getElementById('nav-struct-toggle');
+
+        if (navState.showStructures) {
+          if (btn) btn.classList.remove('off');
+          if (navToggle) navToggle.classList.add('active');
+          navState.structureMarkers.forEach(m => m.addTo(state.map));
+        } else {
+          if (btn) btn.classList.add('off');
+          if (navToggle) navToggle.classList.remove('active');
+          navState.structureMarkers.forEach(m => m.remove());
         }
       }
 
@@ -7557,6 +7900,127 @@
           if (dm < 360 || dm >= 1320) return true;
         }
         return false;
+      }
+
+      function toggleAddVia() {
+        navState.isAddingVia = !navState.isAddingVia;
+        const btn = document.getElementById('add-via-btn');
+        if (btn) {
+          if (navState.isAddingVia) {
+            btn.classList.add('active');
+            btn.innerHTML = '🚩 클릭 대기 중...';
+          } else {
+            btn.classList.remove('active');
+            btn.innerHTML = '📍 경유지 추가';
+          }
+        }
+        if (navState.isAddingVia) {
+          showToast('지도를 클릭하여 경유지(Via Point)를 추가해 경로를 조정하세요.', 'info');
+        }
+      }
+
+      function addViaPoint(latlng) {
+        navState.waypoints.push(latlng);
+        const marker = L.circleMarker(latlng, {
+          radius: 7,
+          fillColor: '#03C75A',
+          color: '#fff',
+          weight: 2,
+          fillOpacity: 0.9,
+          zIndexOffset: 1000
+        }).addTo(state.map);
+        marker.bindTooltip('<b style="color:#03C75A">경유지 ' + navState.waypoints.length + '</b><br><span style="font-size:10px">클릭 시 삭제</span>');
+
+        marker.on('click', (e) => {
+          L.DomEvent.stopPropagation(e);
+          removeViaPoint(latlng, marker);
+        });
+
+        navState.viaMarkers.push(marker);
+        navState.isAddingVia = false;
+        runNavAnalysis();
+      }
+
+      function removeViaPoint(latlng, marker) {
+        navState.waypoints = navState.waypoints.filter(p => p !== latlng);
+        navState.viaMarkers = navState.viaMarkers.filter(m => m !== marker);
+        state.map.removeLayer(marker);
+        runNavAnalysis();
+      }
+
+      function clearViaPoints() {
+        if (navState.viaMarkers) navState.viaMarkers.forEach(m => state.map.removeLayer(m));
+        navState.viaMarkers = [];
+        navState.waypoints = [];
+        navState.isAddingVia = false;
+        runNavAnalysis();
+      }
+
+      function getHighwaysOnRoute(route) {
+        if (!route) return [];
+        const hwMap = new Map(); // Name -> { latlng }
+
+        const legs = route.legs || [];
+        legs.forEach(leg => {
+          if (leg.steps) {
+            leg.steps.forEach(s => {
+              const n = s.name;
+              if (n && (n.includes('고속도로') || n.includes('고속국도') || n.includes('순환도로'))) {
+                const coords = s.maneuver.location; // [lng, lat]
+                // We take the first point encountered for this highway name
+                if (!hwMap.has(n)) {
+                  hwMap.set(n, L.latLng(coords[1], coords[0]));
+                }
+              }
+            });
+          }
+        });
+        return Array.from(hwMap.entries()).map(([n, pts]) => ({ name: n, ll: pts }));
+      }
+
+      function getNavWaypointHTML(highways = []) {
+        let highwaysHTML = '';
+        if (highways.length > 0) {
+          highwaysHTML = `
+             <div style="margin-top:8px; padding-top:8px; border-top:1px dashed rgba(255,130,0,0.15)">
+               <div style="font-size:0.62rem; color:var(--text-muted); margin-bottom:4px; font-weight:600">🛣️ 분석된 고속도로 (경유지 강제 지정 가능)</div>
+               <div style="display:flex; flex-wrap:wrap; gap:4px">
+                 ${highways.map(h => `
+                   <button class="nav-chip" style="font-size:0.58rem; padding:2px 6px; cursor:pointer;" 
+                           onclick="addViaPointFromHighway('${h.name}', ${h.ll.lat}, ${h.ll.lng})" 
+                           title="${h.name}를 경유지로 고정">
+                     ${h.name.replace('고속도로', '').replace('고속국도', '').trim()}
+                   </button>
+                 `).join('')}
+               </div>
+             </div>
+           `;
+        }
+
+        return `
+          <div class="nav-section" style="border-bottom: 2px solid rgba(255,130,0,0.2); background: rgba(255,130,0,0.03);">
+            <div class="nav-section-title">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>경로 조정 (경유지)
+              <div style="margin-left:auto; display:flex; gap:4px">
+                 <button class="nav-mini-btn ${navState.isAddingVia ? 'active' : ''}" id="add-via-btn" onclick="toggleAddVia()">${navState.isAddingVia ? '🚩 클릭 대기 중...' : '📍 추가'}</button>
+                 <button class="nav-mini-btn" onclick="clearViaPoints()" style="border-color:rgba(255,100,100,0.3);color:#ff7070">🗑️ 초기화</button>
+              </div>
+            </div>
+            <div class="nav-section-content">
+              <div style="font-size:0.65rem;color:var(--text-muted);line-height:1.4">
+                지형이나 도로 특성으로 인해 경로가 다를 경우, 지도를 클릭하여 경유지를 추가하세요. 
+                ${navState.waypoints.length > 0 ? `<div style="margin-top:4px;color:var(--cyan);font-weight:600">현재 ${navState.waypoints.length}개의 경유지가 설정됨</div>` : ''}
+              </div>
+              ${highwaysHTML}
+            </div>
+          </div>
+        `;
+      }
+
+      // Helper to add via point from highway list
+      function addViaPointFromHighway(name, lat, lng) {
+        showToast(`${name}를 경유지로 고정합니다.`, 'info');
+        addViaPoint(L.latLng(lat, lng));
       }
 
       function renderNavPanel(route) {
@@ -7594,7 +8058,8 @@
         const originAddr = PORT_ADDRESSES[originName] || originName;
         const dest = [state.selectedSido, state.selectedSigungu, state.selectedDong].filter(Boolean).join(' ') || '도착지';
 
-        body.innerHTML = `
+        const highways = getHighwaysOnRoute(route);
+        body.innerHTML = getNavWaypointHTML(highways) + `
           <!-- 총비용 (최상단) -->
           <div class="nav-section" style="border-color:var(--orange);margin-bottom:7px">
             <div class="nav-section-title" style="color:var(--orange)">
@@ -7609,13 +8074,14 @@
                 <span class="nav-total-label">합계</span>
                 <span class="nav-total-value" id="nav-grand-total">${safetyRate > 0 ? grandTotal.toLocaleString() + ' 원' : '—'}</span>
               </div>
-            </div>
           </div>
-
-          <!-- 경로 -->
+          
+          </div>
+          
           <div class="nav-section">
             <div class="nav-section-title">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12h18M12 3l9 9-9 9"/></svg>실제 도로 경로
+              <button class="nav-mini-btn" style="margin-left:auto" onclick="openNaverDirMap(true)" title="네이버 지도에서 고속도로 위주 경로 보기">고속도로 우선(네이버)</button>
             </div>
             <div class="nav-section-content">
               <div class="nav-row"><span class="nav-row-label" style="white-space:nowrap;margin-right:8px">출발</span><span class="nav-row-value" style="font-size:.71rem;text-align:right;line-height:1.3;color:var(--text-secondary)">${originAddr}<div id="nav-weather-start" style="font-size:.62rem;color:var(--cyan);margin-top:2px"></div></span></div>
@@ -7701,6 +8167,12 @@
            <div class="nav-section">
              <div class="nav-section-title">
                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 10h16M4 14h16M2 12h20"/><circle cx="12" cy="12" r="10"/></svg>경로 내 주요 교량 및 터널
+               <div style="margin-left:auto; display:flex; align-items:center;">
+                  <span style="font-size:0.6rem; color:var(--text-muted); font-weight:400; margin-right:6px; letter-spacing:0">지도 표시</span>
+                  <div class="nav-toggle ${navState.showStructures ? 'active' : ''}" id="nav-struct-toggle" onclick="toggleStructures()" title="지도상 마커 On/Off">
+                    <div class="nav-toggle-thumb"></div>
+                  </div>
+               </div>
              </div>
              <div class="nav-section-content">
                <div class="nav-row" style="margin-bottom:6px">
@@ -7713,8 +8185,9 @@
             navState.structures.forEach(s => {
               const icon = s.t === 't' ? '🚇' : '🌉';
               const cColor = s.t === 't' ? '#ff4081' : '#03C75A';
+              const regionStr = (s.sd && s.sg) ? `${s.sd.substring(0, 2)} ${s.sg}` : (s.sg || '');
               strHtml += `<div style="font-size:0.75rem;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="openStructureStreetView(${s.ll[0]}, ${s.ll[1]}, '${s.n}')" title="클릭하여 거리뷰 보기">
-                  <span style="color:${cColor};font-weight:600">${icon} ${s.n}</span>
+                  <span style="color:${cColor};font-weight:600">${icon} ${s.n} <small style="font-weight:400;opacity:0.6;margin-left:2px">(${regionStr})</small></span>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.4"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
                 </div>`;
             });
@@ -8906,7 +9379,7 @@
       // ===================================
       // NAVER MAP DIRECTIONS INTEGRATION
       // ===================================
-      function openNaverDirMap() {
+      function openNaverDirMap(highwayFirst = false) {
         const origin = state.originLatLng;
         const dest = state.destLatLng;
 
@@ -8923,7 +9396,9 @@
         const originName = encodeURIComponent(state.selectedOrigin || "출발지");
         const destName = encodeURIComponent(state.selectedDong ? (state.selectedSigungu + " " + state.selectedDong) : "도착지");
 
-        const url = `https://map.naver.com/p/directions/${origin.lng},${origin.lat},${originName}/${dest.lng},${dest.lat},${destName}/-/car?c=15.00,0,0,0,dh`;
+        // routeType=6: Highway First (고속도로 우선)
+        const rt = highwayFirst ? '&routeType=6' : '';
+        const url = `https://map.naver.com/p/directions/${origin.lng},${origin.lat},${originName}/${dest.lng},${dest.lat},${destName}/-/car?c=15.00,0,0,0,dh${rt}`;
 
         // Only reload if the URL is different or frame is blank
         if (frame.src !== url && !frame.src.includes(url)) {
@@ -8980,10 +9455,13 @@
 
       function checkNaverDirButtonVisibility() {
         const btn = document.getElementById("naver-dir-toggle-btn");
+        const hBtn = document.getElementById("naver-highway-btn");
         if (state.originLatLng && state.destLatLng) {
-          btn.classList.add("visible");
+          if (btn) btn.classList.add("visible");
+          if (hBtn) hBtn.classList.add("visible");
         } else {
-          btn.classList.remove("visible");
+          if (btn) btn.classList.remove("visible");
+          if (hBtn) hBtn.classList.remove("visible");
         }
       }
       async function openStreetView() {
